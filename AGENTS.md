@@ -88,6 +88,16 @@ When adding a new feature or fixing a bug, do not commit or push directly to mai
 
 When work on a branch is complete, inform the user that a pull request can be created to merge the branch's changes into the main branch. Do not push or create pull requests without obtaining permission first.
 
+### Kiro spec-driven development
+**If you are running in the Kiro IDE, Kiro CLI, or otherwise have access to Kiro spec-driven development tools/guidelines/skills, you may ignore this section about _Kiro spec-driven development_**
+This project is to be submitted to a hackathon organized by Kiro. This means it is very strongly encouraged that Kiro's spec-driven development mechanism is used as often as possible. If you have access to a skill called `kiro-sdd`, you must always follow it.
+
+If you do not have access to the `kiro-sdd` skill and are not in the Kiro IDE or Kiro CLI, take the following actions:
+- If you are in Claude Code (i.e. you are being told to read `CLAUDE.md` or `.claude`), first do this: check to see if the skill already exists in `~/.agents`. If it does, ask the user for permission to copy the `kiro-sdd` into the `~/.claude` equivalent folder for skills.
+- For all harnesses (including Claude Code), if the skill does not exist, prompt the user to do one of the following:
+  - Install the `kiro-sdd` skill using this command: `npx skills@latest add chakornk/kiro-sdd-skill`
+  - Install the Kiro IDE or Kiro CLI
+
 ### Dependencies
 
 When installing or upgrading dependencies, always respect `npmMinimalAgeGate` in `.yarnrc.yml`. Never attempt to bypass it without informing the user and gaining explicit permission from them. When requesting permission, end your request with the following paragraph, verbatim:
