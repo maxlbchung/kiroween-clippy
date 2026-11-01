@@ -1,0 +1,66 @@
+/* Clippy character styling + expressions. Moods are classes on any ancestor. */
+.clippy { display: block; overflow: visible; }
+.clippy * { transform-box: fill-box; }
+
+.c-wire path { fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke .45s ease; }
+.c-wire-glow { stroke: var(--wire-glow); stroke-width: 22; opacity: .35; filter: blur(4px); }
+.c-wire-outline { stroke: var(--wire-dark); stroke-width: 12.5; }
+.c-wire-base { stroke: var(--wire-base); stroke-width: 8.6; }
+.c-wire-shade { stroke: var(--wire-shade); stroke-width: 2.6; opacity: .9; }
+.c-wire-light { stroke: var(--wire-light); stroke-width: 2.4; opacity: .9; }
+
+.c-eye { transform-origin: center; }
+.c-sclera { fill: #fff; stroke: #26262b; stroke-width: 2.6; transition: opacity .2s; }
+.c-iris { fill: #141418; }
+.c-glint { fill: #fff; }
+.c-pupil { transition: opacity .2s; }
+.c-lid { fill: none; stroke: #26262b; stroke-width: 3; stroke-linecap: round; opacity: 0; transition: opacity .2s; transform-origin: center; }
+
+.c-brow {
+  fill: none; stroke: #26262b; stroke-width: 6; stroke-linecap: round;
+  transform-origin: center;
+  transition: transform .35s cubic-bezier(.3, 1.5, .5, 1);
+}
+
+/* ---- expressions ---- */
+.mood-hover .c-brow-l, .mood-happy .c-brow-l { transform: translateY(-5px) rotate(-6deg); }
+.mood-hover .c-brow-r, .mood-happy .c-brow-r { transform: translateY(-5px) rotate(6deg); }
+
+.mood-drag .c-brow-l, .mood-listening .c-brow-l { transform: translateY(-8px) rotate(-10deg); }
+.mood-drag .c-brow-r, .mood-listening .c-brow-r { transform: translateY(-8px) rotate(10deg); }
+.mood-drag .c-eye, .mood-listening .c-eye { transform: scale(1.06); transition: transform .25s; }
+
+.mood-thinking .c-brow-l { transform: translateY(2px) rotate(8deg); }
+.mood-thinking .c-brow-r { transform: translateY(-7px) rotate(-4deg); }
+
+.mood-talking .c-brow-l { animation: brow-talk .9s ease-in-out infinite; }
+.mood-talking .c-brow-r { animation: brow-talk .9s ease-in-out infinite .12s; }
+@keyframes brow-talk { 0%, 100% { transform: none; } 40% { transform: translateY(-4px); } }
+
+.mood-sad .c-brow-l { transform: translateY(1px) rotate(-14deg); }
+.mood-sad .c-brow-r { transform: translateY(1px) rotate(14deg); }
+
+.mood-sleep .c-sclera, .mood-sleep .c-pupil, .mood-happy .c-sclera, .mood-happy .c-pupil { opacity: 0; }
+.mood-sleep .c-lid, .mood-happy .c-lid { opacity: 1; }
+.mood-happy .c-lid { transform: scaleY(-1) translateY(4px); }
+.mood-sleep .c-brow { transform: translateY(5px); }
+
+/* ---- costume micro-animations ---- */
+.cos-spin { transform-origin: center; animation: cos-spin .5s linear infinite; }
+@keyframes cos-spin { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+.cos-float { animation: cos-float 2.8s ease-in-out infinite; }
+@keyframes cos-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.cos-wobble { transform-origin: bottom center; animation: cos-wobble 2.4s ease-in-out infinite; }
+@keyframes cos-wobble { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+.cos-swing { transform-origin: top center; animation: cos-wobble 3s ease-in-out infinite; }
+.cos-glow { animation: cos-glow 2.2s ease-in-out infinite; }
+@keyframes cos-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.25) drop-shadow(0 0 3px rgba(255, 230, 140, .9)); } }
+.cos-cape { transform-origin: top center; animation: cape-sway 3.6s ease-in-out infinite; }
+@keyframes cape-sway {
+  0%, 100% { transform: skewX(calc(var(--cape-lean, 0deg) + 1.5deg)); }
+  50% { transform: skewX(calc(var(--cape-lean, 0deg) - 1.5deg)) scaleX(1.02); }
+}
+
+.reduce-motion .cos-spin, .reduce-motion .cos-float, .reduce-motion .cos-wobble,
+.reduce-motion .cos-swing, .reduce-motion .cos-glow, .reduce-motion .cos-cape,
+.reduce-motion .c-brow { animation: none !important; }

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>Clippy</title>
+  <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="../common/clippy.css">
+  <link rel="stylesheet" href="pet.css">
+</head>
+<body>
+  <div id="stage">
+    <svg id="ring-track" viewBox="0 0 300 372" aria-hidden="true">
+      <ellipse cx="150" cy="220" rx="116" ry="136"/>
+    </svg>
+
+    <div id="clippy-wrap">
+      <div id="shadow"></div>
+      <div id="listen-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div id="clippy-tilt">
+        <div id="clippy-squash">
+          <div id="clippy-bob"></div>
+        </div>
+      </div>
+      <button id="clippy-hit" data-hit aria-label="Clippy. Click for options, drag to move."></button>
+      <div id="zzz" aria-hidden="true"><span>z</span><span>z</span><span>Z</span></div>
+    </div>
+
+    <nav id="ring" aria-label="Clippy menu"></nav>
+    <div id="ring-caption" class="px" aria-hidden="true"></div>
+
+    <div id="say" class="say" data-hit role="status" aria-live="polite">
+      <div class="say-text"></div>
+      <button class="say-close" aria-label="Dismiss">×</button>
+    </div>
+  </div>
+  <script type="module" src="pet.js"></script>
+</body>
+</html>

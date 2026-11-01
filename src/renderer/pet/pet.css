@@ -1,0 +1,182 @@
+#stage {
+  position: absolute; left: 0; top: 0;
+  width: 300px; height: 372px;
+  transform-origin: 0 0;
+  transform: scale(var(--pet-scale, 1));
+}
+
+/* ---------------- Clippy ---------------- */
+#clippy-wrap {
+  position: absolute; left: 80px; top: 90px; width: 140px; height: 224px;
+  transition: opacity .3s, transform .45s var(--spring);
+}
+#clippy-tilt, #clippy-squash, #clippy-bob { position: absolute; inset: 0; }
+#clippy-tilt { transform-origin: 50% 82%; will-change: transform; }
+#clippy-squash { transform-origin: 50% 94%; }
+#clippy-bob { animation: bob 3.4s ease-in-out infinite; transform-origin: 50% 94%; }
+#clippy-bob .clippy { width: 100%; height: 100%; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-3px) scale(.99, 1.012); }
+}
+.mood-talking #clippy-bob { animation: talk-bob .42s ease-in-out infinite; }
+@keyframes talk-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) rotate(1deg); } }
+.mood-thinking #clippy-bob { animation: think-bob 1.6s ease-in-out infinite; }
+@keyframes think-bob { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg) translateY(-2px); } }
+.mood-sleep #clippy-bob { animation: sleep-bob 4.5s ease-in-out infinite; }
+@keyframes sleep-bob { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, .985); } }
+
+#shadow {
+  position: absolute; left: 30px; right: 30px; top: 205px; height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, .34), rgba(0, 0, 0, 0));
+  animation: shadow-bob 3.4s ease-in-out infinite;
+}
+@keyframes shadow-bob { 50% { transform: scaleX(.93); opacity: .8; } }
+
+#clippy-hit {
+  position: absolute; left: 32px; top: 30px; width: 76px; height: 178px;
+  border: 0; padding: 0; background: transparent; border-radius: 38px;
+  cursor: grab;
+}
+#clippy-hit:focus-visible { outline: 1px dotted rgba(0, 0, 0, .6); outline-offset: 2px; }
+.dragging #clippy-hit { cursor: grabbing; }
+
+/* listening rings */
+#listen-rings { position: absolute; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; }
+#listen-rings i {
+  position: absolute; left: -60px; top: -60px; width: 120px; height: 120px; border-radius: 50%;
+  border: 3px solid #e5484d; opacity: 0;
+}
+.mood-listening #listen-rings i { animation: ring-pulse 1.8s var(--ease-out) infinite; }
+.mood-listening #listen-rings i:nth-child(2) { animation-delay: .6s; }
+.mood-listening #listen-rings i:nth-child(3) { animation-delay: 1.2s; }
+@keyframes ring-pulse { 0% { transform: scale(.45); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
+
+/* sleeping z's */
+#zzz { position: absolute; left: 104px; top: 26px; pointer-events: none; font: 700 16px var(--font-px); color: #2b2b38; text-shadow: 1px 1px 0 #fff; }
+#zzz span { position: absolute; opacity: 0; }
+.mood-sleep #zzz span { animation: zzz 3s ease-out infinite; }
+#zzz span:nth-child(2) { animation-delay: 1s !important; font-size: 19px; }
+#zzz span:nth-child(3) { animation-delay: 2s !important; font-size: 23px; }
+@keyframes zzz {
+  0% { transform: translate(0, 0) rotate(-10deg); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(26px, -46px) rotate(12deg); opacity: 0; }
+}
+
+/* entrance / exit */
+#stage.entering #clippy-wrap { animation: enter .9s var(--spring) both; }
+@keyframes enter {
+  0% { transform: translateY(40px) scale(.2, .1); opacity: 0; }
+  45% { transform: translateY(-14px) scale(.92, 1.12); opacity: 1; }
+  70% { transform: translateY(2px) scale(1.06, .94); }
+  100% { transform: none; opacity: 1; }
+}
+#stage.leaving #clippy-wrap { animation: leave .5s cubic-bezier(.5, 0, .9, .4) both; }
+@keyframes leave {
+  0% { transform: none; }
+  30% { transform: translateY(-10px) scale(.95, 1.08); }
+  100% { transform: translateY(40px) scale(.1, .05); opacity: 0; }
+}
+
+/* ---------------- radial menu ---------------- */
+#ring-track { position: absolute; inset: 0; width: 300px; height: 372px; pointer-events: none; overflow: visible; }
+#ring-track ellipse {
+  fill: none; stroke: rgba(23, 23, 28, .55); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round;
+  stroke-dashoffset: 860; opacity: 0;
+  transition: stroke-dashoffset .6s var(--ease-out), opacity .3s;
+  filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff);
+}
+.menu-open #ring-track ellipse { stroke-dashoffset: 0; opacity: 1; animation: track-spin 24s linear infinite; }
+@keyframes track-spin { to { stroke-dashoffset: -860; } }
+
+#ring { position: absolute; left: 150px; top: 220px; width: 0; height: 0; }
+.ring-btn {
+  --size: 54px;
+  position: absolute; left: calc(var(--size) / -2); top: calc(var(--size) / -2);
+  width: var(--size); height: var(--size); padding: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center;
+  color: var(--c);
+  background:
+    radial-gradient(circle at 35% 28%, #fffef8 0 30%, #f1ede1 62%, #d9d3c2 100%);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    inset 0 0 0 4px var(--c),
+    inset 0 0 0 5px var(--ink),
+    inset -3px -4px 0 4px rgba(0, 0, 0, .08),
+    3px 4px 0 rgba(23, 23, 28, .35);
+  transform: translate(0, 0) scale(.15) rotate(-120deg);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform .5s var(--spring) calc(var(--i) * 34ms),
+    opacity .2s ease calc(var(--i) * 34ms),
+    box-shadow .15s;
+}
+.ring-btn .px-icon { transition: transform .3s var(--spring); }
+.menu-open .ring-btn {
+  transform: translate(var(--x), var(--y)) scale(1) rotate(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.menu-closing .ring-btn {
+  transition:
+    transform .26s cubic-bezier(.5, 0, .75, 0) calc((4 - var(--i)) * 22ms),
+    opacity .2s ease calc((4 - var(--i)) * 22ms + 60ms);
+}
+.menu-open .ring-btn:hover, .menu-open .ring-btn:focus-visible {
+  transform: translate(var(--x), calc(var(--y) - 3px)) scale(1.12);
+  transition: transform .25s var(--spring), box-shadow .15s;
+  box-shadow:
+    0 0 0 2px var(--ink),
+    inset 0 0 0 5px var(--c),
+    inset 0 0 0 6px var(--ink),
+    inset -3px -4px 0 4px rgba(0, 0, 0, .08),
+    4px 7px 0 rgba(23, 23, 28, .3);
+  outline: none;
+}
+.ring-btn:hover .px-icon { transform: rotate(-8deg) scale(1.08); animation: icon-wiggle .5s ease-in-out; }
+@keyframes icon-wiggle { 0%, 100% { transform: rotate(0) scale(1.08); } 30% { transform: rotate(-12deg) scale(1.1); } 60% { transform: rotate(8deg) scale(1.08); } }
+.menu-open .ring-btn:active { transform: translate(var(--x), var(--y)) scale(.92); transition-duration: .08s; }
+.ring-btn.is-active::after {
+  content: ''; position: absolute; right: 1px; top: 1px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--c); box-shadow: 0 0 0 2px var(--ink), inset 1px 1px 0 rgba(255, 255, 255, .6);
+}
+
+#ring-caption {
+  position: absolute; left: 150px; top: 290px;
+  padding: 2px 9px 3px;
+  background: var(--bubble); border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 rgba(23, 23, 28, .3);
+  font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+  transform: translate(-50%, 6px) scale(.7); opacity: 0;
+  transition: transform .25s var(--spring), opacity .15s;
+  pointer-events: none;
+}
+#ring-caption.show { transform: translate(-50%, 0) scale(1); opacity: 1; }
+
+/* ---------------- speech bubble (tips/greeting) ---------------- */
+.say {
+  position: absolute; left: 50%; bottom: calc(372px - 112px); width: max-content; max-width: 236px;
+  padding: 8px 26px 9px 11px;
+  background: var(--bubble); border: 2px solid var(--ink); border-radius: 10px;
+  box-shadow: var(--hard-shadow), 0 6px 16px rgba(0, 0, 0, .18);
+  font: 12.5px/1.35 var(--font-ui); color: var(--ink);
+  transform-origin: 50% calc(100% + 14px);
+  transform: translateX(-50%) scale(.3); opacity: 0; visibility: hidden;
+  transition: transform .35s var(--spring), opacity .18s, visibility 0s .35s;
+}
+.say::before, .say::after { content: ''; position: absolute; left: 50%; border-style: solid; }
+.say::before { bottom: -14px; margin-left: -8px; border-width: 14px 9px 0 4px; border-color: var(--ink) transparent transparent transparent; }
+.say::after { bottom: -9px; margin-left: -5.5px; border-width: 10px 6px 0 2.5px; border-color: var(--bubble) transparent transparent transparent; }
+.say.show { transform: translateX(-50%) scale(1); opacity: 1; visibility: visible; transition: transform .45s var(--spring), opacity .15s, visibility 0s; }
+.say-text b { font-family: var(--font-px); font-weight: 700; }
+.say-text .caret { display: inline-block; width: 6px; height: 11px; margin-left: 1px; background: var(--ink); vertical-align: -1px; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.say-close {
+  position: absolute; right: 4px; top: 4px; width: 16px; height: 16px; padding: 0; border: 0;
+  background: transparent; font: 700 14px/14px var(--font-px); color: var(--ink-soft); border-radius: 3px;
+}
+.say-close:hover { background: rgba(0, 0, 0, .08); color: var(--ink); }
+.menu-open .say { visibility: hidden; opacity: 0; }
