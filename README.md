@@ -1,5 +1,7 @@
 # Clippy (kiroween-clippy)
 
+![Clippy: chat bubble, radial menu, wardrobe and Direct mode](docs/preview.png)
+
 An agentic desktop pet for Windows, built with Electron. Clippy sits on your desktop, follows your cursor with his eyes, and can be dragged anywhere. Click him to open a radial menu:
 
 | Button | What it does | Status |
