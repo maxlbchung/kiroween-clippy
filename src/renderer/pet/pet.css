@@ -122,8 +122,8 @@
 }
 .menu-closing .ring-btn {
   transition:
-    transform .26s cubic-bezier(.5, 0, .75, 0) calc((4 - var(--i)) * 22ms),
-    opacity .2s ease calc((4 - var(--i)) * 22ms + 60ms);
+    transform .26s cubic-bezier(.5, 0, .75, 0) calc((5 - var(--i)) * 22ms),
+    opacity .2s ease calc((5 - var(--i)) * 22ms + 60ms);
 }
 .menu-open .ring-btn:hover, .menu-open .ring-btn:focus-visible {
   transform: translate(var(--x), calc(var(--y) - 3px)) scale(1.12);
@@ -145,7 +145,7 @@
 }
 
 #ring-caption {
-  position: absolute; left: 150px; top: 290px;
+  position: absolute; left: 150px; top: 282px;
   padding: 2px 9px 3px;
   background: var(--bubble); border: 2px solid var(--ink);
   box-shadow: 2px 2px 0 rgba(23, 23, 28, .3);

@@ -65,7 +65,6 @@ const prettyAccel = (a) => (a || 'None').replace(/Control/g, 'Ctrl').replace(/\+
 export function mount(el, ctx) {
   let tab = lastTab;
   let micTest = null;
-  let quitArmed = false;
 
   el.innerHTML = `
     <div class="settings">
@@ -204,9 +203,6 @@ export function mount(el, ctx) {
             <span class="hint">Keeps your API keys.</span>
           </div>
         </fieldset>
-        <div class="quit-zone">
-          <button class="btn btn-danger" data-act="quit">${quitArmed ? 'Really quit? Click again' : 'Close Clippy'}</button>
-        </div>
       </div>`;
   }
 
@@ -293,7 +289,6 @@ export function mount(el, ctx) {
     if (tabBtn) {
       if (tabBtn.dataset.tab !== tab) {
         tab = lastTab = tabBtn.dataset.tab;
-        quitArmed = false;
         sfx.hover();
         render(true);
       }
@@ -324,16 +319,6 @@ export function mount(el, ctx) {
       case 'mic': micTest ? stopMic() : startMic(); break;
       case 'hide': ctx.close(); setTimeout(() => ctx.api.hidePet(), 250); break;
       case 'reset-all': await ctx.api.resetSettings(); saved('Settings reset'); break;
-      case 'quit':
-        if (!quitArmed) {
-          quitArmed = true;
-          sfx.boop();
-          e.target.closest('button').textContent = 'Really quit? Click again';
-          setTimeout(() => { quitArmed = false; const b = $('[data-act="quit"]', el); if (b) b.textContent = 'Close Clippy'; }, 3000);
-        } else {
-          ctx.api.quit();
-        }
-        break;
       default: break;
     }
   });

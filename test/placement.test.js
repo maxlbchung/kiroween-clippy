@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PET, PANELS, PANEL_PAD } from '../src/shared/layout.js';
+import { MENU, PET, PANELS, PANEL_PAD } from '../src/shared/layout.js';
 import { placePanel, clampPet, clampRing, defaultPetPosition, bodyRect } from '../src/main/placement.js';
 
 const WA = { x: 0, y: 0, width: 1920, height: 1040 };
@@ -27,6 +27,16 @@ test('clampRing keeps every menu button on screen', () => {
   const top = pos.y + PET.ring.cy - PET.ring.ry - PET.ring.button / 2;
   const right = pos.x + PET.ring.cx + PET.ring.rx + PET.ring.button / 2;
   assert.ok(left >= 0 && top >= 0 && right <= WA.width);
+});
+
+test('every menu button fits inside the pet window', () => {
+  for (const { id, angle } of MENU) {
+    const rad = (angle * Math.PI) / 180;
+    const x = PET.ring.cx + Math.cos(rad) * PET.ring.rx;
+    const y = PET.ring.cy + Math.sin(rad) * PET.ring.ry;
+    const r = PET.ring.button / 2;
+    assert.ok(x - r >= 0 && x + r <= PET.width && y - r >= 0 && y + r <= PET.height, id);
+  }
 });
 
 test('panels open on the right when there is room, left otherwise, and stay on screen', () => {

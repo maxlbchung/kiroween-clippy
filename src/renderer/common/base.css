@@ -64,7 +64,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn .px-icon { margin-left: -3px; }
 .btn-sm { min-height: 22px; padding: 2px 8px; font-size: 12px; }
 .btn-primary { background: #fff1c9; }
-.btn-danger { background: #ffd9d4; color: #8a1111; }
 .btn-ghost { background: transparent; box-shadow: none; }
 .btn-ghost:hover { box-shadow: var(--bevel-out); background: rgba(255, 255, 255, .5); }
 

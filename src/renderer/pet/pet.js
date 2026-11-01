@@ -92,7 +92,8 @@ MENU.forEach((item, i) => {
     sfx.select();
     closeMenu({ silent: true });
     squash(0.5);
-    api.openPanel(item.id);
+    if (item.id === 'quit') api.quit();
+    else api.openPanel(item.id);
   });
   ring.appendChild(b);
 });

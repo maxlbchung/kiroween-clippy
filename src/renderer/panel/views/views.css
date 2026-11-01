@@ -241,5 +241,3 @@
 .about-title { font-size: 26px; font-weight: 700; }
 .about-actions { display: flex; align-items: center; gap: 10px; margin: 2px 0 6px; }
 .about-actions .btn { min-width: 128px; }
-.quit-zone { display: flex; justify-content: center; margin-top: 10px; }
-.quit-zone .btn { min-width: 200px; min-height: 32px; font-size: 14px; }
