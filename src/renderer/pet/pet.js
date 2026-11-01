@@ -216,6 +216,7 @@ installClickThrough({ isLocked: () => !!press });
 let cursor = null;
 let lastCursorAt = 0;
 let wander = { x: 0, y: 0, until: 0 };
+let lookAt = null;
 let tilt = 0;
 let tiltV = 0;
 let vx = 0;
@@ -229,6 +230,12 @@ api.onCursor((p) => {
   cursor = p;
   lastCursorAt = performance.now();
   if (mood.sleep) wake(true);
+  kick();
+});
+
+api.onLook((p) => {
+  lookAt = { ...p, until: performance.now() + 6000 };
+  wake();
   kick();
 });
 
@@ -253,6 +260,7 @@ function kick() {
 function chooseGaze(now) {
   const ext = mood.external;
   if (mood.sleep) return gaze.lookDir(0, 0.3);
+  if (lookAt && now < lookAt.until) return gaze.lookAt(lookAt.x, lookAt.y);
   if (ext === 'thinking') return gaze.lookDir(-0.75, -0.85);
   if (ext === 'listening') return gaze.lookDir(0, -0.15);
   const tracking = settings.behavior.eyeTracking !== false;

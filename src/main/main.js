@@ -7,6 +7,8 @@ import { Pet } from './pet.js';
 import { Panels } from './panels.js';
 import { WindowsSpeech, FakeSpeech, transcribeOpenAI } from './speech.js';
 import { createAgent } from './agent.js';
+import { createTools } from './tools.js';
+import { Uia } from './uia.js';
 import { createTray } from './tray.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +18,7 @@ const NATIVE = app.isPackaged ? path.join(process.resourcesPath, 'native') : pat
 const ICONS = path.join(SRC, 'renderer', 'assets', 'icons');
 const PRELOAD = path.join(SRC, 'preload', 'preload.cjs');
 const APP_ORIGIN = 'app://clippy';
+const STOP_HOTKEY = 'Control+Alt+Backspace';
 
 app.setAppUserModelId('com.kiroween.clippy');
 if (process.env.CLIPPY_USER_DATA) app.setPath('userData', process.env.CLIPPY_USER_DATA);
@@ -41,7 +44,7 @@ function serveAppProtocol() {
   });
 }
 
-let settings, pet, panels, agent, speech, trayCtl;
+let settings, pet, panels, agent, speech, trayCtl, uia;
 let quitting = false;
 const chats = new Map();
 
@@ -53,6 +56,7 @@ function broadcast(channel, payload) {
 
 function registerHotkey(accelerator) {
   globalShortcut.unregisterAll();
+  globalShortcut.register(STOP_HOTKEY, () => agent.stop());
   if (!accelerator) return { ok: true };
   try {
     const ok = globalShortcut.register(accelerator, () => {
@@ -79,6 +83,21 @@ function relayDictation(evt) {
   panels.send('dictation:event', evt);
   if (evt.type === 'started') pet.send('pet:mood', 'listening');
   if (evt.type === 'stopped') pet.send('pet:mood', null);
+}
+
+/** Spoken commands run in the background and answer in Clippy's speech bubble. */
+async function runDirect(command) {
+  pet.send('pet:mood', 'thinking');
+  let reply = '';
+  try {
+    for await (const evt of agent.direct(command)) {
+      if (evt.type === 'delta') reply += evt.text;
+    }
+  } catch (err) {
+    reply = err.name === 'AbortError' ? 'Stopped.' : err.message;
+  }
+  pet.send('pet:mood', null);
+  pet.send('pet:say', { text: reply.trim().split('\n\n').at(-1) || 'Done!' });
 }
 
 async function quitWithGoodbye() {
@@ -138,7 +157,7 @@ function wireIpc() {
   ipcMain.on('panel:ack', (_e, token) => panels.ack(token));
   ipcMain.on('panel:drag-start', () => pet.beginDragFromCursor());
 
-  // chat (stub agent, real streaming contract)
+  // chat
   ipcMain.on('chat:send', async (e, { id, messages }) => {
     const ctrl = new AbortController();
     chats.set(id, ctrl);
@@ -149,13 +168,13 @@ function wireIpc() {
       const clean = (Array.isArray(messages) ? messages : [])
         .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
         .map((m) => ({ role: m.role, content: String(m.content || '').slice(0, 20000) }));
-      for await (const chunk of agent.chat(clean, ctrl.signal)) {
-        if (!talking) { talking = true; pet.send('pet:mood', 'talking'); }
-        send({ type: 'delta', text: chunk });
+      for await (const evt of agent.chat(clean, ctrl.signal)) {
+        if (evt.type === 'delta' && !talking) { talking = true; pet.send('pet:mood', 'talking'); }
+        send(evt);
       }
       send({ type: 'done' });
     } catch (err) {
-      send(ctrl.signal.aborted ? { type: 'done', aborted: true } : { type: 'error', message: err.message });
+      send(err.name === 'AbortError' ? { type: 'done', aborted: true } : { type: 'error', message: err.message });
     } finally {
       chats.delete(id);
       pet.send('pet:mood', null);
@@ -195,10 +214,10 @@ function wireIpc() {
       return { ok: false, error: err.message };
     }
   });
-  ipcMain.handle('direct:dispatch', async (_e, text) => {
-    pet.send('pet:mood', 'happy');
-    setTimeout(() => pet.send('pet:mood', null), 1400);
-    return agent.direct(text);
+  ipcMain.handle('direct:dispatch', (_e, text) => {
+    if (!agent.hasKey()) return { ok: false, error: 'Add an API key in Settings → AI so I can get to work.' };
+    runDirect(String(text).slice(0, 20000));
+    return { ok: true };
   });
 
   // app
@@ -240,7 +259,6 @@ app.whenReady().then(async () => {
   ses.setPermissionCheckHandler((wc, permission) => !!wc && allow(wc, permission));
 
   settings = await new Settings(app.getPath('userData')).init();
-  agent = createAgent({ settings });
   speech = { windows: new WindowsSpeech(NATIVE) };
   speech.windows.on('event', relayDictation);
 
@@ -249,6 +267,12 @@ app.whenReady().then(async () => {
   pet.create();
   panels.create();
   pet.on('moved', () => panels.follow());
+  uia = new Uia(NATIVE, process.pid);
+  agent = createAgent({
+    settings,
+    tools: createTools({ uia, pet }),
+    logFile: path.join(app.getPath('userData'), 'agent.log'),
+  });
 
   trayCtl = createTray({ iconDir: ICONS, pet, panels, settings, onQuit: quitWithGoodbye });
   settings.on('change', onSettingsChange);
@@ -280,5 +304,6 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
   speech?.windows.dispose();
   speech?.fake?.dispose();
+  uia?.dispose();
   settings?.flush();
 });

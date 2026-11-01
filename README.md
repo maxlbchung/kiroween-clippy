@@ -6,8 +6,8 @@ An agentic desktop pet for Windows, built with Electron. Clippy sits on your des
 
 | Button | What it does | Status |
 | --- | --- | --- |
-| **Chat** | Speech-bubble chat window anchored to Clippy, with streaming replies | UI done. The agent is a stub. |
-| **Direct** | Push-to-talk voice commands with no reply text. Meant for a fast "system 1" model that acts through Windows UI Automation | Dictation done. The action agent is a stub. |
+| **Chat** | Speech-bubble chat window anchored to Clippy, with streaming replies and visible tool steps | Working. Uses your API key. |
+| **Direct** | Push-to-talk voice commands with no reply text. A fast "system 1" model acts through Windows UI Automation and answers in the speech bubble | Working. Uses your API key. |
 | **Customize** | Wardrobe with hats, eyewear, mustaches, capes, neckwear and wire finishes. Changes show live on the pet | Done |
 | **Games** | Clippy's Arcade | Empty registry (no games yet) |
 | **Settings** | API keys, models, voice engine, hotkey, behavior, hide/quit | Done |
@@ -63,7 +63,10 @@ src/
     placement.js   pure geometry (unit-tested)
     settings.js    JSON store; API keys encrypted with safeStorage (DPAPI)
     speech.js      dictation engines (Windows / cloud / fake)
-    agent.js       chat + direct agent stubs  ← plug real agents in here
+    agent.js       agent loop for chat + direct
+    providers.js   Anthropic and OpenAI-format adapters
+    tools.js       what the agent can do (UI, commands, web)
+    uia.js         client for native/uia-host.ps1
     tray.js
   preload/         sandboxed contextBridge API (window.clippy)
   shared/layout.js geometry shared by main and renderers
@@ -86,3 +89,9 @@ Design notes:
 ## Credits
 
 Pixel font: [Pixelify Sans](https://fonts.google.com/specimen/Pixelify+Sans) (SIL OFL, see `src/renderer/assets/fonts/OFL.txt`). All character art, costumes and icons are original SVG drawn for this project.
+
+## The agent
+
+Clippy runs **fully automatic**: it clicks, types and runs PowerShell without asking first. Stop it any time with **Ctrl+Alt+Backspace** or the chat Stop button. Every tool call is logged to `agent.log` in the app data folder.
+
+Web pages and app text can try to trick the model (prompt injection). The system prompt tells it to treat them as data, but nothing enforces that, so don't leave Clippy unattended on untrusted content.

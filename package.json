@@ -23,7 +23,7 @@
   "build": {
     "appId": "com.kiroween.clippy",
     "productName": "Clippy",
-    "copyright": "Copyright \u00a9 2026 LiboDev",
+    "copyright": "Copyright © 2026 LiboDev",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -74,5 +74,8 @@
     "portable": {
       "artifactName": "Clippy-${version}-portable.exe"
     }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0"
   }
 }

@@ -1,9 +1,9 @@
-// Chat: speech-bubble conversation with Clippy. The agent behind it is a stub
-// in the main process; this view handles streaming, history and polish.
+// Chat: speech-bubble conversation with Clippy. The agent lives in the main
+// process; this view handles streaming, tool steps, history and polish.
 import { icon } from '../../common/icons.js';
 import { $, esc, sfx, reducedMotion } from '../../common/ui.js';
 
-const SUGGESTIONS = ['What can you do?', 'Tell me a joke', 'Help me focus'];
+const SUGGESTIONS = ['What can you do?', "What's using my disk space?", 'Show me how to change my wallpaper'];
 
 // Survives panel close/re-open (the panel window stays alive).
 const state = { messages: [], streamId: null, error: null, draft: '' };
@@ -48,7 +48,7 @@ export function mount(el, ctx) {
     return `
       <div class="chat-empty">
         <div class="chat-empty-title px">What can I help with?</div>
-        <p>I'm still learning to think for myself, but I'm all ears (well, eyebrows).</p>
+        <p>I can use your apps, run commands and look things up. Ctrl+Alt+Backspace stops me at any time.</p>
         <div class="chips">${SUGGESTIONS.map((s) => `<button class="btn btn-sm chip-btn" data-suggest="${esc(s)}">${esc(s)}</button>`).join('')}</div>
       </div>`;
   }
@@ -56,10 +56,11 @@ export function mount(el, ctx) {
   function msgHtml(m, i) {
     const streaming = state.streamId && i === state.messages.length - 1 && m.role === 'assistant';
     if (m.role === 'user') return `<div class="msg msg-me" data-i="${i}"><div class="msg-card">${format(m.content)}</div></div>`;
+    const steps = m.steps?.length ? `<div class="msg-steps">${m.steps.map((s) => `<div>${esc(s)}</div>`).join('')}</div>` : '';
     const body = m.content
       ? `${format(m.content)}${streaming ? '<span class="stream-caret"></span>' : ''}`
       : '<span class="typing"><i></i><i></i><i></i></span>';
-    return `<div class="msg msg-clippy" data-i="${i}"><div class="msg-text">${body}</div></div>`;
+    return `<div class="msg msg-clippy" data-i="${i}"><div class="msg-text">${steps}${body}</div></div>`;
   }
 
   function render() {
@@ -69,7 +70,12 @@ export function mount(el, ctx) {
       log.innerHTML = state.messages.map(msgHtml).join('') +
         (state.error ? `<div class="msg-error">${esc(state.error)} <button class="btn btn-sm" data-act="retry">Retry</button></div>` : '');
     }
-    sendBtn.disabled = !!state.streamId;
+    syncSend();
+  }
+
+  function syncSend() {
+    sendBtn.innerHTML = state.streamId ? '<span class="stop-sq"></span>' : icon('send', 16);
+    sendBtn.setAttribute('aria-label', state.streamId ? 'Stop' : 'Send');
   }
 
   function updateLast() {
@@ -100,7 +106,7 @@ export function mount(el, ctx) {
     state.error = null;
     state.messages.push({ role: 'assistant', content: '' });
     appendNode(state.messages.length - 1);
-    sendBtn.disabled = true;
+    syncSend();
     const history = state.messages.slice(0, -1).filter((m) => m.content);
     ctx.api.chatSend(id, history);
   }
@@ -123,20 +129,23 @@ export function mount(el, ctx) {
     if (evt.type === 'delta') {
       last.content += evt.text;
       updateLast();
+    } else if (evt.type === 'step') {
+      (last.steps ??= []).push(evt.label);
+      updateLast();
     } else {
       state.streamId = null;
       if (evt.type === 'error') {
         state.error = evt.message || 'Something went wrong.';
-        if (!last.content) state.messages.pop();
+        if (!last.content && !last.steps) state.messages.pop();
         sfx.error();
         render();
         scrollDown();
       } else {
-        if (!last.content) state.messages.pop();
-        updateLast();
+        if (!last.content && !last.steps) state.messages.pop();
+        render();
         sfx.boop();
       }
-      sendBtn.disabled = false;
+      syncSend();
     }
   });
 
@@ -145,7 +154,11 @@ export function mount(el, ctx) {
     input.style.height = `${Math.min(96, input.scrollHeight)}px`;
   }
 
-  form.addEventListener('submit', (e) => { e.preventDefault(); send(input.value); });
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (state.streamId) ctx.api.chatCancel(state.streamId);
+    else send(input.value);
+  });
   input.addEventListener('input', () => { state.draft = input.value; autosize(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {

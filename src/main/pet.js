@@ -195,6 +195,17 @@ export class Pet extends EventEmitter {
     this.savePosition();
   }
 
+  /** Walk over to a physical-pixel screen rect, look at it and show a tip. */
+  pointAt(rect, tip) {
+    const spot = screen.screenToDipPoint({ x: rect.x + rect.width, y: rect.y + rect.height / 2 });
+    const s = this.scale;
+    const want = { x: spot.x + 24 - PET.body.x * s, y: spot.y - PET.ring.cy * s };
+    const target = clampPet(want, s, screen.getDisplayNearestPoint(spot).workArea);
+    this.animateTo(target, 500);
+    this.send('pet:look', { x: spot.x - target.x, y: spot.y - target.y });
+    this.send('pet:say', { text: tip });
+  }
+
   // ---------- eye tracking feed ----------
   startCursorFeed() {
     clearInterval(this.cursorTimer);

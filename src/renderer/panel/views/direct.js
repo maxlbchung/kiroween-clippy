@@ -1,5 +1,5 @@
 // Direct: push-to-talk quick actions. Captures a spoken command and hands it to
-// the (stubbed) action agent. No chat reply — Clippy just acknowledges.
+// the action agent, which answers in Clippy's speech bubble.
 import { icon } from '../../common/icons.js';
 import { $, $$, esc, sfx } from '../../common/ui.js';
 
@@ -139,9 +139,10 @@ export function mount(el, ctx) {
       sfx.error();
       return;
     }
-    await ctx.api.directDispatch(text);
+    const res = await ctx.api.directDispatch(text);
     if (!alive) return;
-    setState('sent', "Queued for Clippy's hands. <span class='soon'>(action agent coming soon)</span>");
+    if (!res.ok) return fail(res.error);
+    setState('sent', 'On it. Ctrl+Alt+Backspace stops me.');
     sfx.select();
     later(() => alive && ctx.close(), 2400);
   }

@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('clippy', {
   onMood: on('pet:mood'),
   onBlur: on('pet:blur'),
   onSay: on('pet:say'),
+  onLook: on('pet:look'),
   onGoodbye: on('pet:goodbye'),
   onToggleMenu: on('pet:toggle-menu'),
 
@@ -50,7 +51,7 @@ contextBridge.exposeInMainWorld('clippy', {
   onPanelAnchor: on('panel:anchor'),
   onPanelFocus: on('panel:focus'),
 
-  // chat (agent is stubbed for now)
+  // chat
   chatSend: (id, messages) => ipcRenderer.send('chat:send', { id, messages }),
   chatCancel: (id) => ipcRenderer.send('chat:cancel', id),
   onChat: on('chat:event'),

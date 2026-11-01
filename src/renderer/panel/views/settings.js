@@ -119,7 +119,7 @@ export function mount(el, ctx) {
         ${keyRow(prov.secret, prov.keyLabel, s.secrets[prov.secret], prov.keyHint)}
         <p class="hint key-note">${icon('lock', 12)} ${s.encryption ? `Keys are encrypted ${ctx.api.platform === 'win32' ? 'with Windows DPAPI' : 'by your OS keychain'} and stay on this PC.` : 'OS encryption unavailable — keys are stored locally without encryption.'}</p>
       </fieldset>
-      <p class="hint soon-note">The agents themselves are still being built — Clippy will use these once they land.</p>`;
+      <p class="hint soon-note">Clippy acts on your PC without asking first. Ctrl+Alt+Backspace stops it. Actions are logged to agent.log in the app data folder.</p>`;
   }
 
   function renderVoice(s) {
