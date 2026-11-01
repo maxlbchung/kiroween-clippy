@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('clippy', {
   openPanel: (name) => ipcRenderer.send('panel:open', name),
   closePanel: () => ipcRenderer.send('panel:close'),
   panelAck: (token) => ipcRenderer.send('panel:ack', token),
+  panelDragStart: () => ipcRenderer.send('panel:drag-start'),
   onPanelOpen: on('panel:open'),
   onPanelEnter: on('panel:enter'),
   onPanelLeave: on('panel:leave'),

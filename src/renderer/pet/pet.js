@@ -134,6 +134,14 @@ function closeMenu({ silent = false } = {}) {
 
 const toggleMenu = () => (menuOpen ? closeMenu() : openMenu());
 
+// A click closes whatever is open; the menu only opens when nothing else is.
+function clickPet() {
+  if (activePanel && !menuOpen) {
+    sfx.close();
+    api.closePanel();
+  } else toggleMenu();
+}
+
 api.onBlur(() => closeMenu({ silent: true }));
 api.onToggleMenu(() => { toggleMenu(); squash(0.6); });
 api.onPetPanel(({ name, side }) => {
@@ -190,13 +198,13 @@ function finishPress(cancelled) {
     squash(0.6);
   } else if (!cancelled) {
     squash(0.8);
-    toggleMenu();
+    clickPet();
   }
 }
 hit.addEventListener('pointerup', () => finishPress(false));
 hit.addEventListener('pointercancel', () => finishPress(true));
 hit.addEventListener('lostpointercapture', () => finishPress(true));
-hit.addEventListener('click', (e) => { if (e.detail === 0) toggleMenu(); }); // keyboard
+hit.addEventListener('click', (e) => { if (e.detail === 0) clickPet(); }); // keyboard
 hit.addEventListener('contextmenu', (e) => { e.preventDefault(); closeMenu({ silent: true }); api.petContextMenu(); });
 hit.addEventListener('pointerenter', () => { mood.hover = true; renderMood(); });
 hit.addEventListener('pointerleave', () => { mood.hover = false; renderMood(); });

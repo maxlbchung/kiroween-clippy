@@ -1,6 +1,6 @@
 /* Clippy character styling + expressions. Moods are classes on any ancestor. */
 .clippy { display: block; overflow: visible; }
-.clippy * { transform-box: fill-box; }
+.clippy *, .thumb-svg * { transform-box: fill-box; }
 
 .c-wire path { fill: none; stroke-linecap: round; stroke-linejoin: round; transition: stroke .45s ease; }
 .c-wire-glow { stroke: var(--wire-glow); stroke-width: 22; opacity: .35; filter: blur(4px); }

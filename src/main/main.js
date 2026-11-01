@@ -136,6 +136,7 @@ function wireIpc() {
   ipcMain.on('panel:open', (_e, name) => panels.toggle(name));
   ipcMain.on('panel:close', () => panels.close());
   ipcMain.on('panel:ack', (_e, token) => panels.ack(token));
+  ipcMain.on('panel:drag-start', () => pet.beginDragFromCursor());
 
   // chat (stub agent, real streaming contract)
   ipcMain.on('chat:send', async (e, { id, messages }) => {

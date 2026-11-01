@@ -12,13 +12,12 @@ const TITLE_ICONS = { customize: 'customize', games: 'games', settings: 'setting
 
 const root = $('#root');
 const frame = $('#frame');
-const zoom = $('#zoom');
 
 let settings = await api.getSettings();
 applyPrefs(settings);
 document.documentElement.style.setProperty('--pad', `${PANEL_PAD}px`);
 
-let current = null; // { name, kind, handle, origin }
+let current = null; // { name, kind, handle }
 
 const ctx = {
   api,
@@ -52,36 +51,11 @@ function setAnchor({ side, tailY, originX, originY }) {
   frame.classList.toggle('side-right', side === 'right');
   frame.classList.toggle('side-left', side === 'left');
   root.style.setProperty('--tail-y', `${tailY}px`);
-  if (current) current.origin = { x: originX, y: originY };
   frame.style.transformOrigin = `${originX}px ${originY}px`;
 }
 
 function stopAnimations() {
   frame.getAnimations().forEach((a) => a.cancel());
-  zoom.innerHTML = '';
-}
-
-// Win95-style "zoom rect" outlines that fly from Clippy to the window.
-function zoomRects(direction) {
-  const { x, y } = current.origin;
-  zoom.innerHTML = '';
-  const n = 4;
-  const anims = [];
-  for (let i = 0; i < n; i++) {
-    const r = document.createElement('div');
-    r.className = 'zoom-rect';
-    r.style.transformOrigin = `${x}px ${y}px`;
-    zoom.appendChild(r);
-    const frames = [
-      { transform: 'scale(.03)', opacity: 0.9 },
-      { transform: 'scale(1)', opacity: 0.9, offset: 0.85 },
-      { transform: 'scale(1)', opacity: 0 },
-    ];
-    anims.push(r.animate(direction > 0 ? frames : [...frames].reverse(), {
-      duration: 230, delay: i * 38, easing: 'cubic-bezier(.3,.6,.3,1)', fill: 'both',
-    }).finished);
-  }
-  return Promise.all(anims).then(() => { zoom.innerHTML = ''; }, () => {});
 }
 
 async function animateIn() {
@@ -101,12 +75,11 @@ async function animateIn() {
       { duration: 420, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' },
     );
   } else {
-    zoomRects(1);
     frame.animate(
       [{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'scale(1)' }],
-      { duration: 170, delay: 190, easing: 'ease-out', fill: 'both' },
+      { duration: 170, easing: 'ease-out', fill: 'both' },
     );
-    setTimeout(() => frame.classList.add('entered'), 200);
+    frame.classList.add('entered');
   }
   frame.style.opacity = 1;
 }
@@ -127,7 +100,6 @@ async function animateOut() {
       [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.97)' }],
       { duration: 110, easing: 'ease-in', fill: 'forwards' },
     ).finished.catch(() => {});
-    if (current) await zoomRects(-1);
   }
   frame.style.opacity = 0;
 }
@@ -139,7 +111,7 @@ api.onPanelOpen(async (msg) => {
   root.style.setProperty('--w', `${msg.panel.width}px`);
   root.style.setProperty('--h', `${msg.panel.height}px`);
   const body = buildFrame(msg.name, msg.panel);
-  current = { name: msg.name, kind: msg.panel.kind, handle: null, origin: { x: msg.originX, y: msg.originY } };
+  current = { name: msg.name, kind: msg.panel.kind, handle: null };
   setAnchor(msg);
   try {
     current.handle = VIEWS[msg.name].mount(body, ctx, msg.data) || {};
@@ -180,6 +152,18 @@ window.addEventListener('keydown', (e) => {
   if (current.handle?.onEscape?.()) return;
   sfx.close();
   ctx.close();
+});
+
+// Dragging a panel's header moves Clippy, and the panel follows him.
+frame.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !e.target.closest('.titlebar, .chat-head, .direct-top') || e.target.closest('button')) return;
+  frame.setPointerCapture(e.pointerId);
+  ctx.setMood('drag');
+  api.panelDragStart();
+  frame.addEventListener('lostpointercapture', () => {
+    api.dragEnd();
+    ctx.setMood(null);
+  }, { once: true });
 });
 
 let pointerDown = false;
