@@ -17,14 +17,14 @@ Other features: tray icon, right-click menu, global hotkey for Direct (`Ctrl+Alt
 ## Run it
 
 ```bash
-npm install
-npm start
+yarn install
+yarn start
 ```
 
 To test Direct mode without Windows speech recognition, run with scripted dictation:
 
 ```bash
-CLIPPY_FAKE_SPEECH=1 npm start
+CLIPPY_FAKE_SPEECH=1 yarn start
 ```
 
 `CLIPPY_USER_DATA=/some/dir` points settings at a throwaway profile.
@@ -34,18 +34,18 @@ CLIPPY_FAKE_SPEECH=1 npm start
 On Windows, this builds the NSIS installer, a portable `.exe` and a `.zip` in `dist/`:
 
 ```bash
-npm run dist:win
+yarn dist:win
 ```
 
 On macOS or Linux, the NSIS installer needs Wine. The zip target works without it:
 
 ```bash
-npm run dist:win:zip
+yarn dist:win:zip
 ```
 
 You can also run the **Build Windows** GitHub Actions workflow manually, or push a `v*` tag. It builds on `windows-latest` and uploads the installers as artifacts.
 
-Other scripts: `npm test` runs the placement unit tests, and `npm run icons` regenerates the app and tray icons from the SVG character.
+Other scripts: `yarn test` runs the placement unit tests, and `yarn icons` regenerates the app and tray icons from the SVG character.
 
 ## Voice (Direct mode)
 
