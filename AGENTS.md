@@ -81,8 +81,14 @@ Apply the following rules to every new or changed comment when modifying a file:
 
 10. **Match the codebase tone.** Comments should read like a high-quality production codebase for that language and ecosystem - clear, brief, and technically precise. Follow the idiomatic comment style of the language in use rather than importing conventions from another language.
 
+### Branches and pull requests
+
+When adding a new feature or fixing a bug, do not commit or push directly to main branch. Instead, create a new branch in the conventional branch name format. This is similar to conventional commit names. Think of it as a conventional commit message that describes what the whole branch does - commit messages are atomic changes that culminate in the change described by the branch name. Keep branch names under 5 words. Branch names should be in the format of `<type>/<description-in-kebab-case>`.
+
+When work on a branch is complete, inform the user that a pull request can be created to merge the branch's changes into the main branch. Do not push or create pull requests without obtaining permission first.
+
 ## Asset creation
 
-Do NOT commit programmatic art generators for static assets such as icons, background images, and sprites. It is not easily human readable. It gets messy, inconsistent, and ultimately unmaintainable. Instead, generate art using a script, then save an SVG copy of the generated art. Committing artwork generator scripts as an intermediate step is acceptable, but such scripts should never be included when a pull request is opened. 
+Do NOT commit programmatic art generators for static assets such as icons, background images, and sprites. It is not easily human readable. It gets messy, inconsistent, and ultimately unmaintainable. Instead, generate art using a script, then save an SVG copy of the generated art. Committing artwork generator scripts as an intermediate step is acceptable, but such scripts should never be included when a pull request is opened.
 
 An exception to this rule is if the art is dynamic in nature (i.e. a fractal pattern for background). In such cases, it is acceptable to have programmatic art generators.
