@@ -88,6 +88,12 @@ When adding a new feature or fixing a bug, do not commit or push directly to mai
 
 When work on a branch is complete, inform the user that a pull request can be created to merge the branch's changes into the main branch. Do not push or create pull requests without obtaining permission first.
 
+### Dependencies
+
+When installing or upgrading dependencies, always respect `npmMinimalAgeGate` in `.yarnrc.yml`. Never attempt to bypass it without informing the user and gaining explicit permission from them. When requesting permission, end your request with the following paragraph, verbatim:
+
+> **WARNING: Installing the latest version of this package right now is risky.** Packages and maintainer accounts are sometimes hijacked, and malicious code can be published and downloaded within hours, long before it is detected. Approving this install means you may be running untrusted code in your environment with no prior review. Do you want to proceed?
+
 ## Asset creation
 
 Do NOT commit programmatic art generators for static assets such as icons, background images, and sprites. It is not easily human readable. It gets messy, inconsistent, and ultimately unmaintainable. Instead, generate art using a script, then save an SVG copy of the generated art. Committing artwork generator scripts as an intermediate step is acceptable, but such scripts should never be included when a pull request is opened.
