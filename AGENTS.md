@@ -34,7 +34,7 @@ Here's the recommended process for creating a commit:
    - Tests pass and code is functional
    - Run `yarn lint:unsafe`
 
-2. Commit only the files relevant to this task. Do not combine multiple independent, unrelated changes into one commit. 
+2. Commit only the files relevant to this task. Do not combine multiple independent, unrelated changes into one commit.
 
 3. Determine commit type based on changes:
    | Type       | Use Case                                          |

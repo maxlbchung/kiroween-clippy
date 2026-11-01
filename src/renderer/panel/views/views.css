@@ -884,7 +884,7 @@
 	box-shadow: var(--bevel-well);
 	padding: 3px;
 }
-.meter i {
+.meter .meter-bar {
 	display: block;
 	height: 100%;
 	background: repeating-linear-gradient(

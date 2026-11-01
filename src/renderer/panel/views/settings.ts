@@ -229,7 +229,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
       <label class="check"><input type="checkbox" data-path="voice.autoSend" ${v.autoSend ? "checked" : ""}> Send automatically when I stop talking</label>
       <div class="mic-test">
         <button class="btn btn-sm" data-act="mic">${icon("direct", 14)}Test microphone</button>
-        <div class="meter"><i></i></div>
+        <div class="meter"><i class="meter-bar"></i></div>
       </div>`;
 	}
 
@@ -455,7 +455,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 
 	// ---------------------------------------------------------------- mic test
 	async function startMic() {
-		const meter = $(".meter i", el);
+		const meter = $(".meter-bar", el);
 		const btn = $('[data-act="mic"]', el);
 		try {
 			const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -491,7 +491,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		});
 		micTest.ac.close().catch(() => {});
 		micTest = null;
-		const m = $(".meter i", el);
+		const m = $(".meter-bar", el);
 		if (m) m.style.transform = "scaleX(0)";
 		$('[data-act="mic"]', el)?.classList.remove("is-pressed");
 	}
