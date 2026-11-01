@@ -10,6 +10,8 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test \"test/*.test.js\"",
+    "lint": "biome check --write .",
+    "lint:unsafe": "biome check --write --unsafe .",
     "icons": "electron scripts/make-icons.mjs",
     "pack": "electron-builder --win --x64 --dir",
     "dist:win": "electron-builder --win --x64",
