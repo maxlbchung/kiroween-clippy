@@ -32,6 +32,7 @@ Here's the recommended process for creating a commit:
    - No sensitive data or debugging code remains
    - All changes follow all rules defined in this file
    - Tests pass and code is functional
+   - Run `yarn lint:unsafe`
 
 2. Stage only the files relevant to this task. Do not combine multiple independent, unrelated changes into one commit. Avoid `git add .` unless required.
 
