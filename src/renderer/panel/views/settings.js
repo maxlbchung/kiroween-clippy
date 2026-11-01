@@ -5,9 +5,9 @@ import { PET_SCALES } from '../../../shared/layout.js';
 import { clippyMarkup } from '../../common/clippy.js';
 
 const PROVIDERS = [
-  { id: 'anthropic', name: 'Anthropic (Claude)', secret: 'anthropic' },
-  { id: 'openai', name: 'OpenAI', secret: 'openai' },
-  { id: 'compatible', name: 'OpenAI-compatible', secret: 'custom' },
+  { id: 'anthropic', name: 'Anthropic (Claude)', secret: 'anthropic', keyLabel: 'Anthropic', keyHint: 'sk-ant-…' },
+  { id: 'openai', name: 'OpenAI', secret: 'openai', keyLabel: 'OpenAI', keyHint: 'sk-…' },
+  { id: 'compatible', name: 'OpenAI-compatible', secret: 'custom', keyLabel: 'Compatible endpoint', keyHint: 'key' },
 ];
 const MODEL_SUGGESTIONS = {
   anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'],
@@ -65,7 +65,6 @@ const prettyAccel = (a) => (a || 'None').replace(/Control/g, 'Ctrl').replace(/\+
 export function mount(el, ctx) {
   let tab = lastTab;
   let micTest = null;
-  let quitArmed = false;
 
   el.innerHTML = `
     <div class="settings">
@@ -116,10 +115,8 @@ export function mount(el, ctx) {
       </div>
       <datalist id="models">${sugg.map((m) => `<option value="${m}">`).join('')}</datalist>
       <fieldset class="group">
-        <legend>API keys</legend>
-        ${keyRow('anthropic', 'Anthropic', s.secrets.anthropic, 'sk-ant-…')}
-        ${keyRow('openai', 'OpenAI', s.secrets.openai, 'sk-…')}
-        ${prov.id === 'compatible' ? keyRow('custom', 'Compatible endpoint', s.secrets.custom, 'key') : ''}
+        <legend>API key</legend>
+        ${keyRow(prov.secret, prov.keyLabel, s.secrets[prov.secret], prov.keyHint)}
         <p class="hint key-note">${icon('lock', 12)} ${s.encryption ? `Keys are encrypted ${ctx.api.platform === 'win32' ? 'with Windows DPAPI' : 'by your OS keychain'} and stay on this PC.` : 'OS encryption unavailable — keys are stored locally without encryption.'}</p>
       </fieldset>
       <p class="hint soon-note">The agents themselves are still being built — Clippy will use these once they land.</p>`;
@@ -151,6 +148,11 @@ export function mount(el, ctx) {
         </div>
       </div>
       <div class="hotkey-msg hint"></div>
+      ${v.engine === 'openai' ? `
+        <fieldset class="group">
+          <legend>Transcription key</legend>
+          ${keyRow('openai', 'OpenAI', s.secrets.openai, 'sk-…')}
+        </fieldset>` : ''}
       <label class="check"><input type="checkbox" data-path="voice.autoSend" ${v.autoSend ? 'checked' : ''}> Send automatically when I stop talking</label>
       <div class="mic-test">
         <button class="btn btn-sm" data-act="mic">${icon('direct', 14)}Test microphone</button>
@@ -201,9 +203,6 @@ export function mount(el, ctx) {
             <span class="hint">Keeps your API keys.</span>
           </div>
         </fieldset>
-        <div class="quit-zone">
-          <button class="btn btn-danger" data-act="quit">${quitArmed ? 'Really quit? Click again' : 'Close Clippy'}</button>
-        </div>
       </div>`;
   }
 
@@ -280,6 +279,7 @@ export function mount(el, ctx) {
     if (!v) { input.focus(); return; }
     await ctx.api.setSecret(row.dataset.secret, v);
     input.value = '';
+    render(); // onSettings skips this while the field has focus (Enter to save)
     saved('Key saved');
     sfx.select();
   }
@@ -289,7 +289,6 @@ export function mount(el, ctx) {
     if (tabBtn) {
       if (tabBtn.dataset.tab !== tab) {
         tab = lastTab = tabBtn.dataset.tab;
-        quitArmed = false;
         sfx.hover();
         render(true);
       }
@@ -320,16 +319,6 @@ export function mount(el, ctx) {
       case 'mic': micTest ? stopMic() : startMic(); break;
       case 'hide': ctx.close(); setTimeout(() => ctx.api.hidePet(), 250); break;
       case 'reset-all': await ctx.api.resetSettings(); saved('Settings reset'); break;
-      case 'quit':
-        if (!quitArmed) {
-          quitArmed = true;
-          sfx.boop();
-          e.target.closest('button').textContent = 'Really quit? Click again';
-          setTimeout(() => { quitArmed = false; const b = $('[data-act="quit"]', el); if (b) b.textContent = 'Close Clippy'; }, 3000);
-        } else {
-          ctx.api.quit();
-        }
-        break;
       default: break;
     }
   });

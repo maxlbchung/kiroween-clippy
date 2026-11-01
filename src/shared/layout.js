@@ -29,11 +29,13 @@ export const PANELS = {
   settings: { width: 480, height: 490, kind: 'window', title: 'Settings' },
 };
 
-// Radial menu items, clockwise from the top.
+// Radial menu items, clockwise from the top left. No slot sits straight down:
+// a button there would be clipped by the bottom of the pet window.
 export const MENU = [
-  { id: 'chat', label: 'Chat', angle: -90, color: '#2f7cf6' },
-  { id: 'direct', label: 'Direct', angle: -18, color: '#e5484d' },
-  { id: 'games', label: 'Games', angle: 54, color: '#30a46c' },
-  { id: 'settings', label: 'Settings', angle: 126, color: '#8b8d98' },
-  { id: 'customize', label: 'Customize', angle: 198, color: '#8e4ec6' },
+  { id: 'chat', label: 'Chat', angle: -120, color: '#2f7cf6' },
+  { id: 'direct', label: 'Direct', angle: -60, color: '#e5484d' },
+  { id: 'games', label: 'Games', angle: 0, color: '#30a46c' },
+  { id: 'settings', label: 'Settings', angle: 60, color: '#8b8d98' },
+  { id: 'customize', label: 'Customize', angle: 120, color: '#8e4ec6' },
+  { id: 'quit', label: 'Close Clippy', angle: 180, color: '#b4232a' },
 ];

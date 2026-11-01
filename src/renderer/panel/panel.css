@@ -4,6 +4,7 @@
   width: var(--w, 300px); height: var(--h, 300px);
 }
 #frame { position: absolute; inset: 0; opacity: 0; will-change: transform, opacity; }
+.titlebar, .chat-head, .direct-top { cursor: move; user-select: none; }
 
 /* ---------------- speech-bubble frame ---------------- */
 .frame-bubble {
@@ -58,13 +59,3 @@
 .x-glyph { width: 8px; height: 8px; display: block; background:
   linear-gradient(45deg, transparent 43%, currentColor 43% 57%, transparent 57%),
   linear-gradient(-45deg, transparent 43%, currentColor 43% 57%, transparent 57%); }
-
-/* ---------------- Win95-style zoom outlines ---------------- */
-#zoom { position: absolute; inset: 0; pointer-events: none; }
-.zoom-rect {
-  position: absolute; inset: 0;
-  border: 2px dashed rgba(23, 23, 28, .7);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .6);
-  opacity: 0;
-}
-.frame-bubble ~ .zoom-rect { border-radius: 14px; }

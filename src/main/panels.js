@@ -135,6 +135,7 @@ export class Panels {
 
   async _close({ silentPet = false } = {}) {
     if (!this.visible || !this.win) return;
+    this.pet.endDrag(); // a panel can auto-close mid-drag and never see pointerup
     await this.request('panel:leave', { name: this.current }, 600);
     this.win.hide();
     this.visible = false;

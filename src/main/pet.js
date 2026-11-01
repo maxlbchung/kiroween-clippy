@@ -119,6 +119,14 @@ export class Pet extends EventEmitter {
     this.dragTimer = setInterval(() => this.dragTick(), FRAME_MS);
   }
 
+  /** Start a drag from outside the pet window, keeping the cursor's offset. */
+  beginDragFromCursor() {
+    const b = this.bounds;
+    if (!b) return;
+    const c = screen.getCursorScreenPoint();
+    this.beginDrag({ x: c.x - b.x, y: c.y - b.y });
+  }
+
   dragTick() {
     if (!this.drag || !this.win) return;
     const c = screen.getCursorScreenPoint();
