@@ -1,82 +1,84 @@
 {
-  "name": "kiroween-clippy",
-  "productName": "Clippy",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Clippy, reborn as an agentic desktop pet for Windows.",
-  "main": "src/main/main.js",
-  "type": "module",
-  "author": "LiboDev",
-  "scripts": {
-    "start": "electron .",
-    "test": "node --test \"test/*.test.js\"",
-    "lint": "biome check --write .",
-    "lint:unsafe": "biome check --write --unsafe .",
-    "icons": "electron scripts/make-icons.mjs",
-    "pack": "electron-builder --win --x64 --dir",
-    "dist:win": "electron-builder --win --x64",
-    "dist:win:zip": "electron-builder --win zip --x64"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.6.3",
-    "electron": "^45.2.1",
-    "electron-builder": "^26.18.0",
-    "png-to-ico": "^3.0.2"
-  },
-  "build": {
-    "appId": "com.kiroween.clippy",
-    "productName": "Clippy",
-    "copyright": "Copyright © 2026 LiboDev",
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
-    "files": [
-      "src/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "native",
-        "to": "native"
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/icon.ico",
-      "artifactName": "Clippy-${version}-win-${arch}.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Clippy",
-      "artifactName": "Clippy-Setup-${version}.exe"
-    },
-    "portable": {
-      "artifactName": "Clippy-${version}-portable.exe"
-    }
-  },
-  "packageManager": "yarn@4.18.1+sha512.b2e1e7524f654f2749d32b4ebcb4622473cb5bcbc485df2007e12a154e50162a4d795526768bc5f5b8f81717bfd79deb2472813d86fb5ae2eb551fa9c872b08f"
+	"name": "kiroween-clippy",
+	"productName": "Clippy",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Clippy, reborn as an agentic desktop pet for Windows.",
+	"main": "dist/main/main.js",
+	"type": "module",
+	"author": "LiboDev",
+	"scripts": {
+		"start": "electron .",
+		"build": "node scripts/build.mjs",
+		"test": "yarn build && node --test test/*.test.js",
+		"lint": "biome check .",
+		"lint:unsafe": "biome check --unsafe .",
+		"icons": "electron scripts/make-icons.mjs",
+		"pack": "electron-builder --win --x64 --dir",
+		"dist:win": "electron-builder --win --x64",
+		"dist:win:zip": "electron-builder --win zip --x64"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.6.3",
+		"electron": "^45.2.1",
+		"electron-builder": "^26.18.0",
+		"png-to-ico": "^3.0.2",
+		"typescript": "^7.0.2"
+	},
+	"build": {
+		"appId": "com.kiroween.clippy",
+		"productName": "Clippy",
+		"copyright": "Copyright © 2026 LiboDev",
+		"directories": {
+			"output": "dist",
+			"buildResources": "build"
+		},
+		"extraResources": [
+			{
+				"from": "native",
+				"to": "native"
+			}
+		],
+		"files": [
+			"dist/**/*",
+			"package.json"
+		],
+		"win": {
+			"target": [
+				{
+					"target": "nsis",
+					"arch": [
+						"x64"
+					]
+				},
+				{
+					"target": "portable",
+					"arch": [
+						"x64"
+					]
+				},
+				{
+					"target": "zip",
+					"arch": [
+						"x64"
+					]
+				}
+			],
+			"icon": "build/icon.ico",
+			"artifactName": "Clippy-${version}-win-${arch}.${ext}"
+		},
+		"nsis": {
+			"oneClick": false,
+			"perMachine": false,
+			"allowToChangeInstallationDirectory": true,
+			"createDesktopShortcut": true,
+			"createStartMenuShortcut": true,
+			"shortcutName": "Clippy",
+			"artifactName": "Clippy-Setup-${version}.exe"
+		},
+		"portable": {
+			"artifactName": "Clippy-${version}-portable.exe"
+		}
+	},
+	"packageManager": "yarn@4.18.1+sha512.b2e1e7524f654f2749d32b4ebcb4622473cb5bcbc485df2007e12a154e50162a4d795526768bc5f5b8f81717bfd79deb2472813d86fb5ae2eb551fa9c872b08f"
 }

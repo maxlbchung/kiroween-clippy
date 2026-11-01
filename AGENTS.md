@@ -34,21 +34,21 @@ Here's the recommended process for creating a commit:
    - Tests pass and code is functional
    - Run `yarn lint:unsafe`
 
-2. Stage only the files relevant to this task. Do not combine multiple independent, unrelated changes into one commit. Avoid `git add .` unless required.
+2. Commit only the files relevant to this task. Do not combine multiple independent, unrelated changes into one commit.
 
 3. Determine commit type based on changes:
-   | Type | Use Case |
-   |------|----------|
-   | `feat` | New features |
-   | `fix` | Bug fixes |
-   | `refactor` | Code refactoring without functional changes |
-   | `perf` | Performance improvements |
-   | `test` | Adding or updating tests |
-   | `docs` | Documentation changes |
-   | `style` | Code style changes (formatting, semicolons, etc.) |
-   | `chore` | Routine maintenance tasks |
-   | `ci` | CI/CD configuration changes |
-   | `build` | Changes to build system or dependencies |
+   | Type       | Use Case                                          |
+   | ---------- | ------------------------------------------------- |
+   | `feat`     | New features                                      |
+   | `fix`      | Bug fixes                                         |
+   | `refactor` | Code refactoring without functional changes       |
+   | `perf`     | Performance improvements                          |
+   | `test`     | Adding or updating tests                          |
+   | `docs`     | Documentation changes                             |
+   | `style`    | Code style changes (formatting, semicolons, etc.) |
+   | `chore`    | Routine maintenance tasks                         |
+   | `ci`       | CI/CD configuration changes                       |
+   | `build`    | Changes to build system or dependencies           |
 
 4. Write a concise, imperative description. Format: `<type>: <description>`. It is strongly discouraged to have multi-line commit messages. Atomic commits make one small change per commit, so long descriptions should not be necessary. Examples: `feat: add user authentication`, `fix: resolve null pointer exception`, `refactor: simplify error handling`, `docs: update API documentation`, `test: add unit tests for login service`, `style: format code with prettier`, `chore: update dependencies`
 
@@ -89,6 +89,7 @@ When adding a new feature or fixing a bug, do not commit or push directly to mai
 When work on a branch is complete, inform the user that a pull request can be created to merge the branch's changes into the main branch. Do not push or create pull requests without obtaining permission first.
 
 ### Kiro spec-driven development
+
 **If you are running in the Kiro IDE, Kiro CLI, or otherwise have access to Kiro spec-driven development tools/guidelines/skills, you may ignore this section about _Kiro spec-driven development_**
 This project is to be submitted to a hackathon organized by Kiro. This means it is very strongly encouraged that Kiro's spec-driven development mechanism is used as often as possible. If you have access to a skill called `kiro-sdd`, you must always follow it.
 
