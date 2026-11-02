@@ -27,7 +27,8 @@ import { FakeSpeech, transcribeOpenAI, WindowsSpeech } from "./speech.js";
 import { createTray } from "./tray.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DIST = path.resolve(__dirname, "..");
+// The main bundle sits directly in dist/, so the bundle directory is dist/.
+const DIST = __dirname;
 const COMPILED = DIST;
 const ROOT = app.isPackaged
 	? path.join(process.resourcesPath, "app")
@@ -38,7 +39,7 @@ const NATIVE = app.isPackaged
 const ICONS = app.isPackaged
 	? path.join(process.resourcesPath, "icons")
 	: path.join(ROOT, "build", "icons");
-const PRELOAD = path.join(COMPILED, "preload", "preload.cjs");
+const PRELOAD = path.join(COMPILED, "preload.js");
 const APP_ORIGIN = "app://clippy";
 
 app.setAppUserModelId("com.kiroween.clippy");
@@ -63,22 +64,14 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 function serveAppProtocol() {
-	const allowed = [
-		path.join(COMPILED, "renderer"),
-		path.join(COMPILED, "shared"),
-		path.join(COMPILED, "assets"),
-	];
 	protocol.handle("app", (req) => {
-		const { host, pathname } = new URL(req.url);
-		const file = path.normalize(
-			path.join(COMPILED, decodeURIComponent(pathname)),
-		);
-		if (
-			host !== "clippy" ||
-			!allowed.some((dir) => file.startsWith(dir + path.sep))
-		) {
+		const url = new URL(req.url);
+		if (url.hostname !== "clippy")
 			return new Response("Not found", { status: 404 });
-		}
+		const relative = decodeURIComponent(url.pathname).replace(/^[/\\]+/, "");
+		if (relative.split(/[\\/]/).includes(".."))
+			return new Response("Not found", { status: 404 });
+		const file = path.join(COMPILED, ...relative.split(/[\\/]/));
 		return net.fetch(pathToFileURL(file).toString());
 	});
 }

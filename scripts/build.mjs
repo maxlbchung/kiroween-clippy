@@ -1,44 +1,91 @@
-import { spawnSync } from "node:child_process";
 import { cp, rm } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { build } from "rolldown";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const dist = path.join(root, "dist");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const DIST = path.join(ROOT, "dist");
 
-await rm(dist, { recursive: true, force: true });
+// The full output contract: one row per emitted bundle file.
+export const BUNDLES = [
+	{
+		input: "src/main/main.ts",
+		out: "main.js",
+		format: "es",
+		platform: "node",
+		external: ["electron", /^node:/],
+	},
+	{
+		input: "src/preload/preload.cts",
+		out: "preload.js",
+		format: "cjs",
+		platform: "node",
+		external: ["electron", /^node:/],
+	},
+	{
+		input: "src/renderer/entry.ts",
+		out: "renderer.js",
+		format: "es",
+		platform: "browser",
+		external: [],
+	},
+];
 
-function tsc(project) {
-	const result = spawnSync(
-		process.execPath,
-		[
-			path.join(root, "node_modules", "typescript", "bin", "tsc"),
-			"-p",
-			path.join(root, project),
-		],
-		{
-			cwd: root,
-			stdio: "inherit",
+const TYPESCRIPT = { target: "esnext", useDefineForClassFields: true };
+
+/** Builds one table row into a single self-contained file under dist/. */
+export async function buildBundle(row) {
+	if (path.basename(row.out) !== row.out) {
+		throw new Error(`Bundle output must be a plain file name: ${row.out}`);
+	}
+	if (row.format === "cjs" && row.platform !== "node") {
+		throw new Error(
+			`Bundle ${row.out} uses cjs format, which requires the node platform`,
+		);
+	}
+	await build({
+		cwd: ROOT,
+		input: { entry: path.join(ROOT, row.input) },
+		platform: row.platform,
+		external: row.external,
+		transform: { typescript: TYPESCRIPT },
+		output: {
+			file: path.join(DIST, row.out),
+			format: row.format,
+			codeSplitting: false,
 		},
-	);
-	if (result.status !== 0) process.exit(result.status ?? 1);
-}
-
-// Sandboxed preloads must be CommonJS. The preload build also emits the
-// shared modules it imports, so it runs first and the ESM build overwrites them.
-tsc("tsconfig.preload.json");
-tsc("tsconfig.json");
-
-for (const dir of ["renderer"]) {
-	await cp(path.join(root, "src", dir), path.join(dist, dir), {
-		recursive: true,
-		filter: (source) => !source.endsWith(".ts") && !source.endsWith(".js"),
 	});
 }
 
-// Copies only the assets the renderers load at runtime.
-for (const dir of ["fonts", "ui-icons"]) {
-	await cp(path.join(root, "assets", dir), path.join(dist, "assets", dir), {
+/** Copies the static files the renderers load at runtime. */
+async function copyAssets() {
+	await cp(path.join(ROOT, "src", "renderer"), path.join(DIST, "renderer"), {
 		recursive: true,
+		filter: (source) => !source.endsWith(".ts") && !source.endsWith(".js"),
+	});
+	for (const dir of ["fonts", "ui-icons"]) {
+		await cp(path.join(ROOT, "assets", dir), path.join(DIST, "assets", dir), {
+			recursive: true,
+		});
+	}
+}
+
+/** Rebuilds dist/ from scratch: every bundle plus static assets. */
+export async function buildAll() {
+	await rm(DIST, { recursive: true, force: true });
+	for (const row of BUNDLES) {
+		await buildBundle(row);
+	}
+	await copyAssets();
+}
+
+// Builds only when executed directly, so importing this module has no side effects.
+if (
+	process.argv[1] &&
+	import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+	buildAll().catch((error) => {
+		console.error(error);
+		process.exitCode = 1;
 	});
 }

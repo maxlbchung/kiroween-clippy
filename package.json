@@ -4,13 +4,14 @@
 	"version": "0.1.0",
 	"private": true,
 	"description": "Clippy, reborn as an agentic desktop pet for Windows.",
-	"main": "dist/main/main.js",
+	"main": "dist/main.js",
 	"type": "module",
 	"author": "LiboDev",
 	"scripts": {
 		"start": "electron .",
 		"build": "node scripts/build.mjs",
-		"test": "yarn build && node --test test/*.test.js",
+		"typecheck": "tsc --noEmit",
+		"test": "node --import ./test/ts-sources.mjs --test test/*.test.js",
 		"lint": "biome check .",
 		"lint:unsafe": "biome check --unsafe .",
 		"icons": "node scripts/make-icons.mjs",
@@ -24,6 +25,7 @@
 		"electron": "^45.2.1",
 		"electron-builder": "^26.18.0",
 		"icon-gen": "^5.0.0",
+		"rolldown": "^1.2.15",
 		"typescript": "^7.0.2"
 	},
 	"build": {

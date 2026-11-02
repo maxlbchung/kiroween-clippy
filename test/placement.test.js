@@ -6,8 +6,8 @@ import {
 	clampRing,
 	defaultPetPosition,
 	placePanel,
-} from "../dist/main/placement.js";
-import { MENU, PANEL_PAD, PANELS, PET } from "../dist/shared/layout.js";
+} from "../src/main/placement.ts";
+import { MENU, PANEL_PAD, PANELS, PET } from "../src/shared/layout.ts";
 
 const WA = { x: 0, y: 0, width: 1920, height: 1040 };
 const within = (r, wa) =>
