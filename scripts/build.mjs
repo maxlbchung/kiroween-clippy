@@ -36,9 +36,9 @@ for (const dir of ["renderer"]) {
 	});
 }
 
-await cp(path.join(root, "assets"), path.join(dist, "assets"), {
-	recursive: true,
-	filter: (source) =>
-		!source.toLowerCase().endsWith(".ts") &&
-		!source.toLowerCase().endsWith(".js"),
-});
+// Copies only the assets the renderers load at runtime.
+for (const dir of ["fonts", "ui-icons"]) {
+	await cp(path.join(root, "assets", dir), path.join(dist, "assets", dir), {
+		recursive: true,
+	});
+}
