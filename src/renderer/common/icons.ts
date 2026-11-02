@@ -17,8 +17,12 @@ const ICON_NAMES = new Set([
 	"none",
 ]);
 
+/**
+ * Inline SVG markup for a 16×16 pixel icon in `assets/ui-icons/`, or an empty
+ * string for unknown names. `size` is in px. Accent pixels use `currentColor`,
+ * so they follow the CSS `color` of the surrounding element.
+ */
 export function icon(name: string, size = 32) {
 	if (!ICON_NAMES.has(name)) return "";
-	const escapedName = encodeURIComponent(name);
-	return `<img class="px-icon" src="../assets/ui-icons/${escapedName}.png" width="${size}" height="${size}" alt="" aria-hidden="true">`;
+	return `<svg class="px-icon" width="${size}" height="${size}" viewBox="0 0 16 16" aria-hidden="true"><use href="/assets/ui-icons/${name}.svg#icon"/></svg>`;
 }
