@@ -38,6 +38,14 @@
 			{
 				"from": "native",
 				"to": "native"
+			},
+			{
+				"from": "build/icons",
+				"to": "icons",
+				"filter": [
+					"icon.ico",
+					"tray.png"
+				]
 			}
 		],
 		"files": [
