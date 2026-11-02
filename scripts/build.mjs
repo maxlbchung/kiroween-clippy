@@ -32,6 +32,7 @@ export const BUNDLES = [
 ];
 
 const TYPESCRIPT = { target: "esnext", useDefineForClassFields: true };
+let buildQueue = Promise.resolve();
 
 /** Builds one table row into a single self-contained file under dist/. */
 export async function buildBundle(row) {
@@ -72,11 +73,15 @@ async function copyAssets() {
 
 /** Rebuilds dist/ from scratch: every bundle plus static assets. */
 export async function buildAll() {
-	await rm(DIST, { recursive: true, force: true });
-	for (const row of BUNDLES) {
-		await buildBundle(row);
-	}
-	await copyAssets();
+	const build = buildQueue.then(async () => {
+		await rm(DIST, { recursive: true, force: true });
+		for (const row of BUNDLES) {
+			await buildBundle(row);
+		}
+		await copyAssets();
+	});
+	buildQueue = build.catch(() => {});
+	await build;
 }
 
 // Builds only when executed directly, so importing this module has no side effects.
