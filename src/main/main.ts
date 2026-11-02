@@ -38,7 +38,7 @@ const NATIVE = app.isPackaged
 const ICONS = app.isPackaged
 	? path.join(process.resourcesPath, "icons")
 	: path.join(ROOT, "build", "icons");
-const PRELOAD = path.join(COMPILED, "preload", "preload.js");
+const PRELOAD = path.join(COMPILED, "preload", "preload.cjs");
 const APP_ORIGIN = "app://clippy";
 
 app.setAppUserModelId("com.kiroween.clippy");
