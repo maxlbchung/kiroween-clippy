@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,16 +28,9 @@ for (const dir of ["renderer"]) {
 	});
 }
 
-await mkdir(path.join(dist, "renderer", "assets", "ui-icons"), {
+await cp(path.join(root, "assets"), path.join(dist, "assets"), {
 	recursive: true,
+	filter: (source) =>
+		!source.toLowerCase().endsWith(".ts") &&
+		!source.toLowerCase().endsWith(".js"),
 });
-await cp(
-	path.join(root, "assets", "ui-icons"),
-	path.join(dist, "renderer", "assets", "ui-icons"),
-	{
-		recursive: true,
-		filter: (source) =>
-			!source.toLowerCase().endsWith(".ts") &&
-			!source.toLowerCase().endsWith(".js"),
-	},
-);
