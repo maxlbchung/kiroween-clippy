@@ -317,7 +317,6 @@
 }
 .ring-btn .px-icon {
 	transition: transform 0.3s var(--spring);
-	filter: drop-shadow(1px 1px 0 var(--c));
 }
 .menu-open .ring-btn {
 	transform: translate(var(--x), var(--y)) scale(1) rotate(0);
