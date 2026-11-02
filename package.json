@@ -73,7 +73,7 @@
 					]
 				}
 			],
-			"icon": "build/icon.ico",
+			"icon": "build/icons/icon.ico",
 			"artifactName": "Clippy-${version}-win-${arch}.${ext}"
 		},
 		"nsis": {
