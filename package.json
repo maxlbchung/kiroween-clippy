@@ -14,7 +14,6 @@
 		"lint": "biome check .",
 		"lint:unsafe": "biome check --unsafe .",
 		"icons": "node scripts/make-icons.mjs",
-		"ui-icons": "yarn node assets/ui-icons/genIcons.ts --generate",
 		"pack": "electron-builder --win --x64 --dir",
 		"dist:win": "electron-builder --win --x64",
 		"dist:win:zip": "electron-builder --win zip --x64"
