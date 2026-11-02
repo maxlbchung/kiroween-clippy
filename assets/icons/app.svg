@@ -9,8 +9,7 @@
       d="M82 190 L82 100 A19 19 0 0 1 120 100 L120 222 A27 27 0 0 1 66 222 L66 74 A34 34 0 0 1 134 74 L134 200" />
   </defs>
   <ellipse cx="256" cy="465.92" rx="215.04" ry="25.6" fill="url(#shadow)" />
-  <svg x="15.36" y="15.36" width="481.28" height="481.28" viewBox="-18 30 236 236" overflow="visible">
-    <title>Clippy paperclip character</title>
+  <g transform="matrix(2.039322033898305 0 0 2.039322033898305 52.096 -45.779322033898)">
     <g fill="none" stroke-linecap="round" stroke-linejoin="round">
       <use href="#wire" stroke="#373c46" stroke-width="12.5" />
       <use href="#wire" stroke="#c9ced6" stroke-width="8.6" />
@@ -27,5 +26,5 @@
       <path d="M68 79 Q82 70 96 77" />
       <path d="M106 75 Q120 68 134 75" />
     </g>
-  </svg>
+  </g>
 </svg>
