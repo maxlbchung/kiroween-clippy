@@ -194,7 +194,7 @@
 }
 .send-btn .px-icon {
 	margin: 0;
-	color: var(--accent);
+	filter: drop-shadow(0 0 1px var(--accent));
 }
 .chat-hint {
 	padding: 0 12px 7px;
