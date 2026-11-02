@@ -35,3 +35,10 @@ for (const dir of ["renderer"]) {
 		filter: (source) => !source.endsWith(".ts") && !source.endsWith(".js"),
 	});
 }
+
+// Copies only the assets the renderers load at runtime.
+for (const dir of ["fonts", "ui-icons"]) {
+	await cp(path.join(root, "assets", dir), path.join(dist, "assets", dir), {
+		recursive: true,
+	});
+}

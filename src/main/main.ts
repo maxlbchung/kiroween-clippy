@@ -66,6 +66,7 @@ function serveAppProtocol() {
 	const allowed = [
 		path.join(COMPILED, "renderer"),
 		path.join(COMPILED, "shared"),
+		path.join(COMPILED, "assets"),
 	];
 	protocol.handle("app", (req) => {
 		const { host, pathname } = new URL(req.url);
