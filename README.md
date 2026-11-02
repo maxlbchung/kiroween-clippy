@@ -45,7 +45,7 @@ yarn dist:win:zip
 
 You can also run the **Build Windows** GitHub Actions workflow manually, or push a `v*` tag. It builds on `windows-latest` and uploads the installers as artifacts.
 
-Other scripts: `yarn test` runs the placement unit tests, and `yarn icons` regenerates the app and tray icons from the SVG character.
+Other scripts: `yarn test` runs the placement unit tests, and `yarn icons` regenerates the app and tray icons from the editable SVGs in `assets/icons/`.
 
 ## Voice (Direct mode)
 
