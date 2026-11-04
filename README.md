@@ -4,13 +4,13 @@
 
 An agentic desktop pet for Windows, built with Electron. Clippy sits on your desktop, follows your cursor with his eyes, and can be dragged anywhere. Click him to open a radial menu:
 
-| Button        | What it does                                                                                                              | Status                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| **Chat**      | Speech-bubble chat window anchored to Clippy, with streaming replies                                                      | UI done. The agent is a stub.               |
-| **Direct**    | Push-to-talk voice commands with no reply text. Meant for a fast "system 1" model that acts through Windows UI Automation | Dictation done. The action agent is a stub. |
-| **Customize** | Wardrobe with hats, eyewear, mustaches, capes, neckwear and finishes. Try on locked items, then buy them with credits     | Done                                        |
-| **Games**     | Clippy's Arcade. Dodge his attacks in **Dodge!** or beat his timed AI quiz show in **AI Trivia**. Scores earn credits     | Two games                                   |
-| **Settings**  | API keys, models, voice engine, hotkey, behavior, hide/quit                                                               | Done                                        |
+| Button        | What it does                                                                                                                                                                                 | Status                                      |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| **Chat**      | Speech-bubble chat window anchored to Clippy, with streaming replies                                                                                                                         | UI done. The agent is a stub.               |
+| **Direct**    | Push-to-talk voice commands with no reply text. Meant for a fast "system 1" model that acts through Windows UI Automation                                                                    | Dictation done. The action agent is a stub. |
+| **Customize** | Wardrobe with hats, eyewear, mustaches, capes, neckwear and finishes. Try on locked items, then buy them with credits                                                                        | Done                                        |
+| **Games**     | Clippy's Arcade. Dodge his attacks in **Dodge!**, beat his timed AI quiz show in **AI Trivia**, or find him and two clones in a pile of fake windows in **Hide & Seek**. Scores earn credits | Three games                                 |
+| **Settings**  | API keys, models, voice engine, hotkey, behavior, hide/quit                                                                                                                                  | Done                                        |
 
 Other features: tray icon, right-click menu, global hotkey for Direct (`Ctrl+Alt+Space` by default), idle quips, sleep mode, drag wobble physics, Win95-style window zoom animations, and synthesized retro sounds (no audio files).
 
@@ -45,7 +45,7 @@ yarn dist:win:zip
 
 You can also run the **Build Windows** GitHub Actions workflow manually, or push a `v*` tag. It builds on `windows-latest` and uploads the installers as artifacts.
 
-Other scripts: `yarn test` runs the placement, shop and trivia unit tests, and `yarn icons` regenerates the app and tray icons from the editable SVGs in `assets/icons/`.
+Other scripts: `yarn test` runs the placement, shop, trivia and Hide & Seek layout unit tests, and `yarn icons` regenerates the app and tray icons from the editable SVGs in `assets/icons/`.
 
 ## Voice (Direct mode)
 
@@ -77,6 +77,7 @@ src/
     games/         overlay.css (shared HUD, dialogs and Clippy for full-screen games), score.js (best scores)
     games/dodge/   Dodge overlay: attack coroutines, canvas engine, HUD and dialogs
     games/quiz/    AI Trivia overlay: question bank, pure round and scoring rules (unit-tested), quiz window
+    games/seek/    Hide & Seek overlay: window catalogue and art, pure layout and scoring rules (unit-tested), game loop
 native/            speech-host.ps1 (shipped via extraResources)
 ```
 
