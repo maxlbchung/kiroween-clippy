@@ -2,6 +2,7 @@
 // { id, name, blurb, color, mount(el, ctx, back) }, where `mount` replaces the
 // arcade's content and `back` returns to the cartridge shelf.
 
+import { POINTS_PER_CREDIT } from "../../../shared/shop.js";
 import type { RendererContext } from "../../../shared/types.js";
 import { icon } from "../../common/icons.js";
 import { $, esc, sfx } from "../../common/ui.js";
@@ -26,10 +27,12 @@ function mountDodge(el: HTMLElement, ctx: RendererContext, back: () => void) {
     <ul class="game-rules">
       <li>Clippy attacks your mouse cursor with fireballs, pop-ups, dives and worse.</li>
       <li>One hit and it's game over. Close calls earn bonus points.</li>
+      <li>Every ${POINTS_PER_CREDIT} points earn a credit for unlocking costumes.</li>
       <li>Press <b>Esc</b> to pause.</li>
     </ul>
     <div class="game-foot">
       <span class="game-best px">BEST ${formatScore(loadBest())}</span>
+      <span class="game-credits px" title="Spend credits in the Wardrobe">${icon("coin", 16)}${ctx.settings.wallet.credits}</span>
       <button class="btn" data-act="back">Back</button>
       <button class="btn btn-primary" data-act="play">Play</button>
     </div>`;

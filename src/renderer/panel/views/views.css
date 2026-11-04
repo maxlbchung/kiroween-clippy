@@ -481,6 +481,44 @@
 .ward-actions .btn {
 	min-height: 26px;
 }
+.ward-actions[hidden],
+.ward-buy[hidden] {
+	display: none;
+}
+.ward-buy {
+	position: absolute;
+	z-index: 1;
+	bottom: 8px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+.ward-buy .btn {
+	min-height: 26px;
+}
+.ward-price,
+.ward-wallet {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	color: #ffd23f;
+	font-size: 14px;
+	text-shadow: 1px 1px 0 #000;
+}
+.ward-price {
+	height: 26px;
+	padding: 0 7px 0 4px;
+	background: var(--ink);
+}
+.ward-wallet {
+	position: absolute;
+	z-index: 2;
+	top: 6px;
+	left: 6px;
+	padding: 1px 8px 1px 3px;
+	border-radius: 10px;
+	background: rgba(23, 23, 28, 0.6);
+}
 
 .ward-closet {
 	display: flex;
@@ -548,6 +586,29 @@
 	height: 24px;
 	display: grid;
 	place-items: center;
+}
+.tile.is-locked .thumb-svg {
+	opacity: 0.6;
+	filter: grayscale(0.6);
+}
+.tile-price {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 0 4px 0 2px;
+	background: var(--ink);
+	color: #ffd23f;
+	font-size: 11px;
+	line-height: 16px;
+}
+.tile.is-preview {
+	background: #e8f0ff;
+	box-shadow:
+		var(--bevel-in),
+		0 0 0 2px #2f7cf6;
 }
 .tile.is-on {
 	background: #fff1c9;
@@ -756,9 +817,15 @@
 	padding: 0 4px;
 }
 .game-best {
-	margin-right: auto;
 	font-size: 14px;
 	color: var(--ink-soft);
+}
+.game-credits {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	margin-right: auto;
+	font-size: 14px;
 }
 
 /* ======================================================================
