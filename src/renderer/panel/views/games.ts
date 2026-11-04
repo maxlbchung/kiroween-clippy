@@ -94,6 +94,24 @@ export const GAMES: Game[] = [
 			],
 		}),
 	},
+	{
+		id: "seek",
+		name: "Seek",
+		blurb: "Find all 3!",
+		color: "#30a46c",
+		mount: titleCard({
+			id: "seek",
+			title: "HIDE & SEEK",
+			tagline: "It looks like you're trying to find me.",
+			rules: [
+				"Clippy and two clones hide in a pile of windows. Find all 3 before time runs out.",
+				"Drag title bars and bring windows forward to look behind and inside them.",
+				"Staplers, paper clips and wild clicking cost points. Faster finds score more.",
+				CREDIT_RULE,
+				"Press <b>Esc</b> to pause.",
+			],
+		}),
+	},
 ];
 
 const SLOTS = [
