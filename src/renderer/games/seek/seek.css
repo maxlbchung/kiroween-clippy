@@ -1,30 +1,7 @@
-/* Hide & Seek: a full-screen pile of fake windows with Clippies hiding in it. */
-html,
-body {
-	width: 100%;
-	height: 100%;
-}
-body {
-	cursor: default;
-}
+/* Hide & Seek: a full-screen pile of fake windows with Clippies hiding in it.
+   Builds on games/overlay.css. */
 img {
 	-webkit-user-drag: none;
-}
-
-/* A dim marks game mode and keeps the whole overlay hit-testable. */
-#dim {
-	position: fixed;
-	inset: 0;
-	background: radial-gradient(
-		ellipse at center,
-		rgba(14, 10, 40, 0.22),
-		rgba(14, 10, 40, 0.55)
-	);
-	opacity: 0.02;
-	transition: opacity 0.5s ease;
-}
-body.active #dim {
-	opacity: 1;
 }
 body.paused #dim {
 	background: rgba(14, 10, 40, 0.82);
@@ -1354,7 +1331,7 @@ body.paused #fx {
 	font-size: 11px;
 }
 
-/* Notepad and MS-DOS */
+/* Notepad and DOS prompt */
 .k-notepad .paper {
 	position: relative;
 	flex: 1;
@@ -1831,62 +1808,6 @@ body.paused #fx {
 .msg-btns .btn {
 	min-width: 60px;
 }
-.fw-icon {
-	position: relative;
-	flex: none;
-	display: grid;
-	place-items: center;
-	width: 30px;
-	height: 30px;
-	border: 2px solid var(--ink);
-	border-radius: 50%;
-	color: #fff;
-	font: 700 18px / 1 var(--font-px);
-	box-shadow: 2px 2px 0 rgba(23, 23, 28, 0.25);
-}
-.fw-icon.err {
-	background: var(--bad);
-}
-.fw-icon.err::before,
-.fw-icon.err::after {
-	content: "";
-	position: absolute;
-	width: 16px;
-	height: 4px;
-	background: #fff;
-	transform: rotate(45deg);
-}
-.fw-icon.err::after {
-	transform: rotate(-45deg);
-}
-.fw-icon.info,
-.fw-icon.ask {
-	background: #2f7cf6;
-}
-.fw-icon.info::before {
-	content: "i";
-}
-.fw-icon.ask::before {
-	content: "?";
-}
-.fw-icon.warn {
-	border: 0;
-	border-radius: 0;
-	box-shadow: none;
-	color: var(--ink);
-	background: var(--ink);
-	clip-path: polygon(50% 0, 100% 100%, 0 100%);
-}
-.fw-icon.warn::after {
-	content: "!";
-	position: absolute;
-	inset: 3px 4px 2px;
-	padding-top: 9px;
-	background: #ffd23f;
-	clip-path: polygon(50% 0, 100% 100%, 0 100%);
-	text-align: center;
-	font-size: 15px;
-}
 .sw.k-popup .titlebar {
 	background: linear-gradient(90deg, #7a4a00, #ffb224);
 }
@@ -2087,65 +2008,23 @@ body.paused #fx {
 	color: #fff;
 }
 
-/* Clippy and his speech bubble */
+/* Clippy and the small speech bubbles of found Clippies */
 #clippy {
-	position: fixed;
-	left: 0;
-	top: 0;
 	z-index: 3;
-	will-change: transform;
-	pointer-events: none;
 }
-#clippy[hidden] {
-	display: none;
-}
-#clippy .bob {
-	position: absolute;
-	inset: 0;
-	animation: hover-bob 1.4s ease-in-out infinite;
-}
-#clippy .clippy {
-	width: 100%;
-	height: 100%;
-}
-@keyframes hover-bob {
-	50% {
-		transform: translateY(-5px);
-	}
-}
-#bubble,
-.quip {
-	position: fixed;
-	left: 0;
-	top: 0;
+#bubble {
 	z-index: 4;
-	max-width: 260px;
-	padding: 7px 12px 8px;
+}
+.quip {
+	padding: 4px 9px 5px;
 	background: var(--bubble);
 	border: 2px solid var(--bubble-edge);
 	border-radius: 12px;
 	box-shadow: var(--hard-shadow);
-	font-size: 15px;
-	line-height: 1.25;
-	pointer-events: none;
-}
-#bubble {
-	opacity: 0;
-	visibility: hidden;
-	transition:
-		opacity 0.15s,
-		visibility 0s 0.15s;
-}
-#bubble.show {
-	opacity: 1;
-	visibility: visible;
-	transition: opacity 0.1s;
-}
-.quip {
-	position: absolute;
 	font-size: 13px;
-	padding: 4px 9px 5px;
+	line-height: 1.25;
 	white-space: nowrap;
+	pointer-events: none;
 }
 
 /* Effects */
@@ -2233,43 +2112,16 @@ body.paused #fx {
 	transition: opacity 0.35s ease;
 }
 
-/* HUD */
+/* HUD, with a hint button */
 #hud {
-	position: fixed;
 	top: 14px;
-	left: 50%;
 	z-index: 6;
-	transform: translateX(-50%);
-	display: flex;
 	align-items: center;
-	gap: 14px;
 	padding: 5px 8px 5px 14px;
-	background: var(--bubble);
-	border: 2px solid var(--ink);
-	box-shadow: var(--hard-shadow);
-	white-space: nowrap;
+	pointer-events: auto;
 }
-#hud[hidden] {
-	display: none;
-}
-.hud-cell {
-	display: flex;
+#hud .hud-cell {
 	align-items: center;
-	gap: 6px;
-}
-.hud-label {
-	font: 600 11px var(--font-px);
-	letter-spacing: 0.08em;
-	color: var(--ink-soft);
-}
-#hud .hud-cell b {
-	display: inline-block;
-	font-size: 22px;
-	font-weight: 400;
-	letter-spacing: 0.06em;
-}
-#score {
-	min-width: 4.1em;
 }
 #time {
 	min-width: 2.6em;
@@ -2312,158 +2164,45 @@ body.paused #fx {
 #hint {
 	min-height: 24px;
 }
-#hint .px-icon {
-	margin-left: -2px;
-}
-.hud-hint {
-	font-size: 12px;
-	color: var(--ink-soft);
-	padding-left: 12px;
-	border-left: 1px solid var(--face-lo);
-}
 
 /* Countdown */
 #count {
-	position: fixed;
-	left: 50%;
-	top: 42%;
 	z-index: 7;
-	transform: translate(-50%, -50%);
-	font-size: 112px;
-	color: #ffd23f;
 	text-shadow:
 		4px 4px 0 #30a46c,
 		8px 8px 0 rgba(0, 0, 0, 0.45);
-	white-space: nowrap;
-	pointer-events: none;
 }
 #count.small {
 	font-size: 64px;
 }
-#count.pop {
-	animation: count-pop 0.5s var(--spring) both;
-}
-@keyframes count-pop {
-	from {
-		transform: translate(-50%, -50%) scale(2.2);
-		opacity: 0;
-	}
-	60% {
-		opacity: 1;
-	}
-}
 
-/* Pause, win and time-up dialogs */
+/* Pause, win and time-up dialogs, placed by the game through --stage-x/-y */
 #dialog {
-	position: fixed;
-	left: 0;
-	top: 0;
 	z-index: 8;
-	width: 340px;
-}
-#dialog[hidden] {
-	display: none;
-}
-#dialog.entered {
-	animation: dlg-in 0.22s var(--ease-out) both;
-}
-@keyframes dlg-in {
-	from {
-		opacity: 0;
-		transform: scale(0.92);
-	}
-}
-#dialog .win-body {
-	gap: 12px;
-	padding: 14px 14px 12px;
-}
-.dlg-head {
-	display: flex;
-	gap: 12px;
-	align-items: center;
-}
-.dlg-head p {
-	margin: 0;
-}
-.dlg-title {
-	font-size: 16px;
-}
-.dlg-btns {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 2px;
-}
-.dlg-btns .btn {
-	min-width: 92px;
-}
-.go-score {
-	display: flex;
-	align-items: baseline;
-	gap: 10px;
-	padding: 8px 10px;
-	background: var(--well);
-	box-shadow: var(--bevel-well);
-}
-.go-score .label {
-	margin: 0;
-}
-#dialog .go-score b {
-	font-size: 32px;
-	font-weight: 400;
-	letter-spacing: 0.08em;
-}
-.go-new {
-	margin-left: auto;
-	font-size: 14px;
-	color: var(--bad);
-	animation: go-blink 0.8s steps(1) infinite;
-}
-@keyframes go-blink {
-	50% {
-		opacity: 0;
-	}
-}
-.go-stats {
-	display: grid;
-	grid-template-columns: 1fr auto;
-	gap: 3px 12px;
-	margin: 0;
-	padding: 0 4px;
-}
-.go-stats dt {
-	color: var(--ink-soft);
-}
-.go-stats dd {
-	margin: 0;
-	text-align: right;
-	font-size: 13px;
-}
-.go-credits {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px 8px;
-	background: #fff6d6;
-	box-shadow: var(--bevel-in);
-}
-#dialog .go-credits b {
-	font-size: 16px;
-	font-weight: 400;
-}
-.go-credits .hint {
-	margin-left: auto;
-}
-.dlg-heads {
-	display: flex;
-	gap: 4px;
-}
-.dlg-heads .head {
-	width: 30px;
-	height: 32px;
 }
 
 /* Rolled-up windows hide their content, whatever kind they are. */
 .sw.shaded .sw-body {
 	visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#desk *,
+	#fx *,
+	#clippy *,
+	#hud *,
+	#count,
+	#dialog,
+	#dialog * {
+		animation: none;
+		transition: none;
+	}
+	.site-news .ticker span,
+	.site-home .marq span,
+	.k-music .title span {
+		padding-left: 0;
+	}
+	.k-video .seek i {
+		width: 35%;
+	}
 }

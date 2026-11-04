@@ -1242,8 +1242,8 @@ function showDialog(spec: DialogSpec, avoid: Rect[] = []) {
 		view(),
 		avoid,
 	);
-	dialog.style.left = `${at.x}px`;
-	dialog.style.top = `${at.y}px`;
+	dialog.style.setProperty("--stage-x", `${at.x + at.w / 2}px`);
+	dialog.style.setProperty("--stage-y", `${at.y + at.h / 2}px`);
 	dialog.classList.remove("entered");
 	void dialog.offsetWidth;
 	dialog.classList.add("entered");
