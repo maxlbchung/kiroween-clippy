@@ -3,7 +3,7 @@
 // arcade's content and `back` returns to the cartridge shelf.
 
 import { POINTS_PER_CREDIT } from "../../../shared/shop.js";
-import type { RendererContext } from "../../../shared/types.js";
+import type { GameId, RendererContext } from "../../../shared/types.js";
 import { icon } from "../../common/icons.js";
 import { $, esc, sfx } from "../../common/ui.js";
 import { formatScore, loadBest } from "../../games/score.js";
@@ -16,36 +16,46 @@ type Game = {
 	mount(el: HTMLElement, ctx: RendererContext, back: () => void): unknown;
 };
 
-/** Title card for Dodge. The game itself runs in a full-screen overlay. */
-function mountDodge(el: HTMLElement, ctx: RendererContext, back: () => void) {
-	el.innerHTML = `
+/** Title card copy for a game that runs in the full-screen overlay. */
+type TitleCard = {
+	id: GameId;
+	title: string;
+	tagline: string;
+	/** Rule lines as HTML. */
+	rules: string[];
+};
+
+/** Mounts a title card whose Play button launches the full-screen game. */
+function titleCard(card: TitleCard) {
+	return (el: HTMLElement, ctx: RendererContext, back: () => void) => {
+		el.innerHTML = `
     <div class="marquee">
       <div class="marquee-lights" aria-hidden="true"></div>
-      <div class="marquee-title px">DODGE!</div>
-      <div class="marquee-sub px">It looks like you're trying to survive.</div>
+      <div class="marquee-title px">${esc(card.title)}</div>
+      <div class="marquee-sub px">${esc(card.tagline)}</div>
     </div>
     <ul class="game-rules">
-      <li>Clippy attacks your mouse cursor with fireballs, pop-ups, dives and worse.</li>
-      <li>One hit and it's game over. Close calls earn bonus points.</li>
-      <li>Every ${POINTS_PER_CREDIT} points earn a credit for unlocking costumes.</li>
-      <li>Press <b>Esc</b> to pause.</li>
+      ${card.rules.map((rule) => `<li>${rule}</li>`).join("")}
     </ul>
     <div class="game-foot">
-      <span class="game-best px">BEST ${formatScore(loadBest("dodge"))}</span>
+      <span class="game-best px">BEST ${formatScore(loadBest(card.id))}</span>
       <span class="game-credits px" title="Spend credits in the Wardrobe">${icon("coin", 16)}${ctx.settings.wallet.credits}</span>
       <button class="btn" data-act="back">Back</button>
       <button class="btn btn-primary" data-act="play">Play</button>
     </div>`;
-	el.querySelector<HTMLElement>('[data-act="play"]').focus();
-	el.querySelector('[data-act="back"]').addEventListener("click", () => {
-		sfx.close();
-		back();
-	});
-	el.querySelector('[data-act="play"]').addEventListener("click", () => {
-		sfx.select();
-		ctx.api.launchGame("dodge");
-	});
+		el.querySelector<HTMLElement>('[data-act="play"]').focus();
+		el.querySelector('[data-act="back"]').addEventListener("click", () => {
+			sfx.close();
+			back();
+		});
+		el.querySelector('[data-act="play"]').addEventListener("click", () => {
+			sfx.select();
+			ctx.api.launchGame(card.id);
+		});
+	};
 }
+
+const CREDIT_RULE = `Every ${POINTS_PER_CREDIT} points earn a credit for unlocking costumes.`;
 
 export const GAMES: Game[] = [
 	{
@@ -53,7 +63,17 @@ export const GAMES: Game[] = [
 		name: "Dodge!",
 		blurb: "Survive!",
 		color: "#e5484d",
-		mount: mountDodge,
+		mount: titleCard({
+			id: "dodge",
+			title: "DODGE!",
+			tagline: "It looks like you're trying to survive.",
+			rules: [
+				"Clippy attacks your mouse cursor with fireballs, pop-ups, dives and worse.",
+				"One hit and it's game over. Close calls earn bonus points.",
+				CREDIT_RULE,
+				"Press <b>Esc</b> to pause.",
+			],
+		}),
 	},
 ];
 
