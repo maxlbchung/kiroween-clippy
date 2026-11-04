@@ -67,7 +67,7 @@ test("buildAll emits the flat layout and a CommonJS preload", async () => {
 			path.join(DIST, "renderer", page, "index.html"),
 			"utf8",
 		);
-		assert.match(html, /src="\.\.\/renderer\.js"/);
+		assert.match(html, /src="\.\.\/\.\.\/renderer\.js"/);
 	}
 });
 

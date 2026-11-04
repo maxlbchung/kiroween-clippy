@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { itemsFor } from "../dist/renderer/common/costumes.js";
+import { itemsFor } from "../src/renderer/common/costumes.ts";
 import {
 	costumeKey,
 	creditsForScore,
@@ -8,7 +8,7 @@ import {
 	POINTS_PER_CREDIT,
 	PRICES,
 	priceOf,
-} from "../dist/shared/shop.js";
+} from "../src/shared/shop.ts";
 
 const empty = { credits: 0, unlocked: [] };
 
