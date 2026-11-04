@@ -1,8 +1,13 @@
 // Dodge: Clippy attacks the mouse cursor across the whole screen. This module
 // owns the overlay page: input, game states, HUD, dialogs and sound.
 
-import type { GameInit, GameResult } from "../../../shared/types.js";
+import type {
+	GameInit,
+	GameResult,
+	GameRoundReward,
+} from "../../../shared/types.js";
 import { blink, clippyMarkup, createGaze } from "../../common/clippy.js";
+import { icon } from "../../common/icons.js";
 import {
 	$,
 	api,
@@ -154,6 +159,14 @@ let state: State = "intro";
 let scripts: Script[] = [];
 let best = loadBest();
 let lastResult: GameResult | null = null;
+// Credits for the last finished round, resolved by the main process.
+let reward: Promise<GameRoundReward | null> = Promise.resolve(null);
+
+/** Reports a finished round so its score turns into credits. */
+function endRound(result: GameResult) {
+	lastResult = result;
+	reward = api.gameRound(result).catch(() => null);
+}
 // Whether this round's attack director is running.
 let started = false;
 
@@ -300,7 +313,7 @@ function gameOver(at: Vec) {
 	const score = world.score;
 	const record = saveBest(score);
 	best = loadBest();
-	lastResult = { score, time: world.time, record };
+	endRound({ score, time: world.time, record });
 	const c = world.clippy;
 	c.mood = "happy";
 	world.ring(at.x, at.y, "#ffffff", 6, 160);
@@ -354,12 +367,28 @@ function showGameOver() {
         <dt>Attacks dodged</dt><dd class="px">${world.dodged}</dd>
         <dt>Close calls</dt><dd class="px">${world.grazes}</dd>
         <dt>Best</dt><dd class="px">${formatScore(best)}</dd>
-      </dl>`,
+      </dl>
+      <div class="go-credits">
+        ${icon("coin", 24)}
+        <b class="px" data-earned>+…</b>
+        <span class="hint" data-wallet>Counting credits…</span>
+      </div>`,
 		buttons: [
 			{ label: "Play again", act: "again", primary: true },
 			{ label: "Quit", act: "quit" },
 		],
 		onClose: "quit",
+	});
+	const shown = dialog.firstElementChild;
+	reward.then((r) => {
+		if (dialog.firstElementChild !== shown) return;
+		const earned = dialog.querySelector("[data-earned]");
+		const wallet = dialog.querySelector("[data-wallet]");
+		if (!earned || !wallet) return;
+		earned.textContent = `+${r?.earned ?? 0} credits`;
+		wallet.textContent = r
+			? `${r.credits} to spend in the Wardrobe`
+			: "Credits are unavailable right now.";
 	});
 }
 
@@ -377,10 +406,8 @@ function quit() {
 	if (state === "leaving") return;
 	if (state === "playing" || state === "paused" || state === "countdown") {
 		const score = world.score;
-		if (score > 0) {
-			const record = saveBest(score);
-			lastResult = { score, time: world.time, record };
-		}
+		if (score > 0)
+			endRound({ score, time: world.time, record: saveBest(score) });
 	}
 	state = "leaving";
 	scripts = [];
