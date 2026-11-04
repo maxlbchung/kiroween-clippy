@@ -476,18 +476,8 @@
 	min-width: 2em;
 }
 
-/* Honors the system reduced-motion setting. The shared rule in base.css
-   loses to the more specific selectors above. */
+/* Floating points only make sense in motion. */
 @media (prefers-reduced-motion: reduce) {
-	#show,
-	#show *,
-	#clippy *,
-	#count,
-	#dialog,
-	#dialog * {
-		animation: none;
-		transition: none;
-	}
 	.pts {
 		display: none;
 	}

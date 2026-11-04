@@ -217,15 +217,3 @@
 		transform: skewX(calc(var(--cape-lean, 0deg) - 1.5deg)) scaleX(1.02);
 	}
 }
-
-@media (prefers-reduced-motion: reduce) {
-	.cos-spin,
-	.cos-float,
-	.cos-wobble,
-	.cos-swing,
-	.cos-glow,
-	.cos-cape,
-	.c-brow {
-		animation: none;
-	}
-}

@@ -388,9 +388,17 @@ textarea {
 	color: var(--bad);
 }
 
+/* Stops every animation when the system asks for reduced motion. It has to
+   beat the more specific selectors that start animations, so it is !important. */
 @media (prefers-reduced-motion: reduce) {
-	* {
-		animation-duration: 0.01ms;
-		transition-duration: 0.01ms;
+	*,
+	*::before,
+	*::after {
+		/* biome-ignore lint/complexity/noImportantStyles: must override every animation */
+		animation-duration: 0.01ms !important;
+		/* biome-ignore lint/complexity/noImportantStyles: must override every animation */
+		animation-iteration-count: 1 !important;
+		/* biome-ignore lint/complexity/noImportantStyles: must override every transition */
+		transition-duration: 0.01ms !important;
 	}
 }

@@ -2186,17 +2186,8 @@ body.paused #fx {
 	visibility: hidden;
 }
 
+/* Leaves scrolling text and the video's progress bar at a readable rest. */
 @media (prefers-reduced-motion: reduce) {
-	#desk *,
-	#fx *,
-	#clippy *,
-	#hud *,
-	#count,
-	#dialog,
-	#dialog * {
-		animation: none;
-		transition: none;
-	}
 	.site-news .ticker span,
 	.site-home .marq span,
 	.k-music .title span {
