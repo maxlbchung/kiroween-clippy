@@ -54,11 +54,9 @@ export const nextFrame = () =>
 		requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
 	);
 
+/** True when the system asks apps to minimize animation. */
 export function reducedMotion() {
-	return (
-		document.documentElement.classList.contains("reduce-motion") ||
-		matchMedia("(prefers-reduced-motion: reduce)").matches
-	);
+	return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -173,11 +171,7 @@ export const sfx = {
 	},
 };
 
-/** Apply app-wide preference classes from settings. */
+/** Apply app-wide preferences from settings. */
 export function applyPrefs(s: PublicSettings) {
-	document.documentElement.classList.toggle(
-		"reduce-motion",
-		!!s?.behavior?.reduceMotion,
-	);
 	setSoundEnabled(s?.behavior?.sounds !== false);
 }

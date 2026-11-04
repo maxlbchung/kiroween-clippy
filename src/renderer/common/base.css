@@ -394,10 +394,3 @@ textarea {
 		transition-duration: 0.01ms;
 	}
 }
-.reduce-motion *,
-.reduce-motion *::before,
-.reduce-motion *::after {
-	animation-duration: 0.01ms;
-	animation-iteration-count: 1;
-	transition-duration: 0.01ms;
-}

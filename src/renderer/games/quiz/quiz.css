@@ -727,17 +727,19 @@ body.active #dim {
 	margin-left: auto;
 }
 
-/* Honors reduced motion. The shared rule in base.css loses to the more
-   specific selectors above. */
-.reduce-motion #show,
-.reduce-motion #show *,
-.reduce-motion #clippy *,
-.reduce-motion #count,
-.reduce-motion #dialog,
-.reduce-motion #dialog * {
-	animation: none;
-	transition: none;
-}
-.reduce-motion .pts {
-	display: none;
+/* Honors the system reduced-motion setting. The shared rule in base.css
+   loses to the more specific selectors above. */
+@media (prefers-reduced-motion: reduce) {
+	#show,
+	#show *,
+	#clippy *,
+	#count,
+	#dialog,
+	#dialog * {
+		animation: none;
+		transition: none;
+	}
+	.pts {
+		display: none;
+	}
 }

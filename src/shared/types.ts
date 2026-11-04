@@ -51,7 +51,6 @@ export type BehaviorSettings = {
 	launchAtLogin: boolean;
 	idleChatter: boolean;
 	eyeTracking: boolean;
-	reduceMotion: boolean;
 	sounds: boolean;
 };
 

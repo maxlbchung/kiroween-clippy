@@ -218,12 +218,14 @@
 	}
 }
 
-.reduce-motion .cos-spin,
-.reduce-motion .cos-float,
-.reduce-motion .cos-wobble,
-.reduce-motion .cos-swing,
-.reduce-motion .cos-glow,
-.reduce-motion .cos-cape,
-.reduce-motion .c-brow {
-	animation: none;
+@media (prefers-reduced-motion: reduce) {
+	.cos-spin,
+	.cos-float,
+	.cos-wobble,
+	.cos-swing,
+	.cos-glow,
+	.cos-cape,
+	.c-brow {
+		animation: none;
+	}
 }
