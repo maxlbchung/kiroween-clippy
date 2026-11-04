@@ -44,7 +44,10 @@ export function buyCostume(
 	if (owns(wallet, category, id))
 		return { ok: true, settings: settings.public };
 	if (wallet.credits < price)
-		return { ok: false, error: "Not enough credits. Play Dodge to earn more!" };
+		return {
+			ok: false,
+			error: "Not enough credits. Play arcade games to earn more!",
+		};
 	return {
 		ok: true,
 		settings: settings.patch({
