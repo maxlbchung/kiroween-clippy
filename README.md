@@ -74,6 +74,7 @@ src/
     common/        design system CSS, Clippy SVG + costumes, pixel icons, sfx
     pet/           Clippy, radial menu, moods, speech bubble
     panel/         panel host + views (chat, direct, customize, games, settings)
+    games/         overlay.css (shared HUD, dialogs and Clippy for full-screen games), score.js (best scores)
     games/dodge/   Dodge overlay: attack coroutines, canvas engine, HUD and dialogs
     games/quiz/    AI Trivia overlay: question bank, pure round and scoring rules (unit-tested), quiz window
 native/            speech-host.ps1 (shipped via extraResources)
@@ -85,8 +86,14 @@ Design notes:
 - **Security:** `contextIsolation` and `sandbox` are on, there is no Node in renderers, a CSP is set, and files are served from a custom `app://` scheme. API keys never reach a renderer; it only sees "is set" flags.
 - **Extending:**
   - Implement `agent.chat()` (an async generator of text chunks) and `agent.direct()` in `src/main/agent.js`. The streaming IPC is already wired.
-  - Add games by pushing `{ id, name, blurb, color, mount }` into `GAMES` in `views/games.js`. `mount(el, ctx, back)` replaces the arcade's content.
-  - Full-screen games get a page in `renderer/games/<id>/` and an entry in `PAGES` in `main/arcade.js`. The overlay starts with `api.launchGame(id)` and ends with `api.exitGame(result)`.
+  - Add games by pushing `{ id, name, blurb, color, mount }` into `GAMES` in `views/games.js`. `mount(el, ctx, back)` replaces the arcade's content. `titleCard({ id, title, tagline, rules })` builds a title card whose Play button launches a full-screen game.
+  - Full-screen games need:
+    - an id in `GameId` in `shared/types.js`;
+    - a page in `renderer/games/<id>/` that links `games/overlay.css`;
+    - an entry in `PAGES` in `main/arcade.js`;
+    - Clippy's post-round lines in `EXIT_LINES` in `main/main.js`.
+
+    The overlay starts with `api.launchGame(id)`. It reports each finished round with `api.gameRound(result)`, which awards credits, and ends with `api.exitGame(result)`. Best scores live in `games/score.js`, keyed by game id.
   - Add costumes to `ITEMS` in `common/costumes.js`. Give one a price in `PRICES` in `shared/shop.js` to lock it; items without a price are free.
 
 ## Credits
