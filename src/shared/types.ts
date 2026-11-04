@@ -55,9 +55,17 @@ export type BehaviorSettings = {
 	sounds: boolean;
 };
 
+/** Arcade credits and bought costume items, written only by the main process. */
+export type WalletSettings = {
+	credits: number;
+	/** Bought items as `category:id` keys. */
+	unlocked: string[];
+};
+
 export type SettingsData = {
 	pet: PetSettings;
 	costume: CostumeSettings;
+	wallet: WalletSettings;
 	ai: AISettings;
 	voice: VoiceSettings;
 	behavior: BehaviorSettings;
@@ -94,6 +102,31 @@ export type ChatEvent =
 
 export type Unsubscribe = () => void;
 
+export type GameId = "dodge";
+
+/** Startup data for a full-screen game, in overlay window coordinates. */
+export type GameInit = {
+	id: GameId;
+	/** Pet scale, so the overlay Clippy matches the desktop one. */
+	scale: number;
+	/** Clippy's SVG box where the pet window drew him. */
+	home: Rect;
+	cursor: Point;
+};
+
+export type GameResult = {
+	score: number;
+	/** Seconds survived. */
+	time: number;
+	record: boolean;
+};
+
+export type GameRoundReward = { earned: number; credits: number };
+
+export type PurchaseResult =
+	| { ok: true; settings: PublicSettings }
+	| { ok: false; error: string };
+
 export type RendererContext = {
 	api: ClippyAPI;
 	settings: PublicSettings;
@@ -111,6 +144,7 @@ export interface ClippyAPI {
 		value: string,
 	): Promise<PublicSettings>;
 	setHotkey(accelerator: string): Promise<{ ok: boolean; error?: string }>;
+	buyCostume(category: CostumeCategory, id: string): Promise<PurchaseResult>;
 	onSettings(callback: (settings: PublicSettings) => void): Unsubscribe;
 	setInteractive(on: boolean): void;
 	dragStart(x: number, y: number): void;
@@ -165,6 +199,12 @@ export interface ClippyAPI {
 	): Promise<{ status: "empty" | "queued"; agent?: false; model?: string }>;
 	onDictation(callback: (event: DictationEvent) => void): Unsubscribe;
 	onDirectToggle(callback: () => void): Unsubscribe;
+	launchGame(id: GameId): void;
+	gameInit(): Promise<GameInit | null>;
+	gameReady(): void;
+	/** Reports a finished round and converts its score into credits. */
+	gameRound(result: GameResult): Promise<GameRoundReward>;
+	exitGame(result: GameResult | null): void;
 	appInfo(): Promise<{
 		version: string;
 		electron: string;
