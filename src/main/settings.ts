@@ -21,6 +21,7 @@ export const DEFAULTS: SettingsData = {
 		neck: null,
 		finish: "silver",
 	},
+	wallet: { credits: 0, unlocked: [] },
 	ai: {
 		provider: "anthropic",
 		chatModel: "claude-sonnet-5-5",
@@ -71,6 +72,12 @@ function sanitize(
 		if (isObj(def)) {
 			const sub = sanitize(def, v);
 			if (Object.keys(sub).length) out[key] = sub;
+		} else if (Array.isArray(def)) {
+			if (Array.isArray(v))
+				out[key] = v
+					.filter((x) => typeof x === "string")
+					.slice(0, 500)
+					.map((x: string) => x.slice(0, 100));
 		} else if (def === null) {
 			if (
 				v === null ||
@@ -170,11 +177,15 @@ export class Settings extends EventEmitter {
 		return this.public;
 	}
 
+	/** Restores defaults but keeps Clippy's position and the wallet. */
 	reset() {
 		const prev = this.data;
 		this.data = merge(
 			structuredClone(DEFAULTS) as unknown as Record<string, unknown>,
-			{ pet: { x: prev.pet.x, y: prev.pet.y } },
+			{
+				pet: { x: prev.pet.x, y: prev.pet.y },
+				wallet: structuredClone(prev.wallet),
+			},
 		) as unknown as SettingsData;
 		this.scheduleSave();
 		this.emit("change", this.data, prev, this.data);

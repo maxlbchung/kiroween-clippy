@@ -1,9 +1,12 @@
 // Wardrobe: dress Clippy up. Changes save instantly and show live on the pet.
+// Locked items can be tried on here, then bought with arcade credits.
 
+import { owns, priceOf } from "../../../shared/shop.js";
 import type {
 	Costume,
 	CostumeCategory,
 	RendererContext,
+	WalletSettings,
 } from "../../../shared/types.js";
 import {
 	applyCostume,
@@ -68,10 +71,15 @@ function stars(c) {
 
 export function mount(el: HTMLElement, ctx: RendererContext) {
 	let costume: Costume = { ...EMPTY_COSTUME, ...ctx.settings.costume };
+	let wallet: WalletSettings = ctx.settings.wallet;
+	// A locked item being tried on. It is drawn but never saved.
+	let preview: { category: CostumeCategory; id: string } | null = null;
+	let drawn: Costume = costume;
 
 	el.innerHTML = `
     <div class="wardrobe">
       <section class="ward-stage">
+        <div class="ward-wallet px" title="Arcade credits">${icon("coin", 16)}<span></span></div>
         <div class="ward-spot"></div>
         <div class="ward-floor"></div>
         <div class="ward-preview"><div class="ward-bob">${clippyMarkup({ uid: "wp", costume })}</div></div>
@@ -82,6 +90,11 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
         <div class="ward-actions">
           <button class="btn btn-sm" data-act="random">${icon("dice", 16)}Surprise me</button>
           <button class="btn btn-sm" data-act="reset" title="Back to basics">${icon("reset", 16)}</button>
+        </div>
+        <div class="ward-buy" hidden>
+          <span class="ward-price px">${icon("coin", 16)}<span></span></span>
+          <button class="btn btn-sm btn-primary" data-act="buy">Buy</button>
+          <button class="btn btn-sm" data-act="cancel" aria-label="Stop trying on"><span class="x-glyph"></span></button>
         </div>
       </section>
       <section class="ward-closet">
@@ -96,14 +109,41 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	const grid = $(".ward-grid", el);
 	const nameEl = $(".ward-name", el);
 	const starsEl = $(".ward-stars", el);
+	const walletEl = $(".ward-wallet span", el);
+	const actionsEl = $(".ward-actions", el);
+	const buyEl = $(".ward-buy", el);
+	const priceEl = $(".ward-price span", el);
+	const buyBtn = $('[data-act="buy"]', el);
 	const gaze = createGaze(svg);
 	let tab = lastTab;
 	let raf = 0;
 	let blinkTimer: ReturnType<typeof setTimeout> | null = null;
 
+	const shown = (): Costume =>
+		preview ? { ...costume, [preview.category]: preview.id } : costume;
+
+	function draw(animate: boolean) {
+		const next = shown();
+		applyCostume(svg, next, drawn, { uid: "wp", animate });
+		drawn = next;
+	}
+
 	function renderMeta() {
-		nameEl.textContent = outfitTitle(costume);
-		starsEl.textContent = stars(costume);
+		const look = shown();
+		nameEl.textContent = outfitTitle(look);
+		walletEl.textContent = String(wallet.credits);
+		actionsEl.hidden = !!preview;
+		buyEl.hidden = !preview;
+		if (!preview) {
+			starsEl.textContent = stars(look);
+			return;
+		}
+		const price = priceOf(preview.category, preview.id);
+		const short = price - wallet.credits;
+		priceEl.textContent = String(price);
+		buyBtn.toggleAttribute("disabled", short > 0);
+		starsEl.textContent =
+			short > 0 ? `Need ${short} more credits` : "Trying on. Buy to keep it!";
 	}
 
 	function renderGrid(animate) {
@@ -115,10 +155,16 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		grid.innerHTML = options
 			.map((it) => {
 				const selected = (costume[cat.id] ?? null) === it.id;
+				const locked = !owns(wallet, cat.id, it.id);
+				const trying = preview?.category === cat.id && preview.id === it.id;
+				const price = priceOf(cat.id, it.id);
+				const cls = `tile${selected ? " is-on" : ""}${locked ? " is-locked" : ""}${trying ? " is-preview" : ""}`;
+				const label = locked ? `${it.name}: ${price} credits` : it.name;
 				return `
-        <button class="tile${selected ? " is-on" : ""}" role="option" aria-selected="${selected}" data-id="${it.id ?? ""}" title="${esc(it.name)}">
+        <button class="${cls}" role="option" aria-selected="${selected}" data-id="${it.id ?? ""}" title="${esc(label)}">
           <span class="tile-art">${thumb(cat, it.id)}</span>
           <span class="tile-name">${esc(it.name)}</span>
+          ${locked ? `<span class="tile-price px">${icon("coin", 12)}${price}</span>` : ""}
         </button>`;
 			})
 			.join("");
@@ -144,9 +190,9 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	}
 
 	function equip(next, { random = false } = {}) {
-		const prev = costume;
+		preview = null;
 		costume = { ...EMPTY_COSTUME, ...next };
-		applyCostume(svg, costume, prev, { uid: "wp", animate: !reducedMotion() });
+		draw(!reducedMotion());
 		renderMeta();
 		renderGrid(false);
 		ctx.api.patchSettings({ costume });
@@ -175,7 +221,9 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 		const next: Costume = { ...EMPTY_COSTUME };
 		for (const c of CATEGORIES) {
-			const ids = itemsFor(c.id).map((i) => i.id);
+			const ids = itemsFor(c.id)
+				.map((i) => i.id)
+				.filter((id) => owns(wallet, c.id, id));
 			if (c.id === "finish")
 				next.finish = Math.random() < 0.45 ? pick(ids) : "silver";
 			else
@@ -200,12 +248,22 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		const tile = target.closest<HTMLElement>(".tile");
 		if (tile) {
 			const id = tile.dataset.id || null;
+			const category = tab as CostumeCategory;
+			if (!owns(wallet, category, id)) {
+				tryOn(category, id);
+				return;
+			}
 			if (tab === "finish") equip({ ...costume, finish: id || "silver" });
 			else equip({ ...costume, [tab]: costume[tab] === id ? null : id });
 			sfx.pop();
 			return;
 		}
 		const act = target.closest<HTMLElement>("[data-act]")?.dataset.act;
+		if (act === "buy") buy();
+		if (act === "cancel") {
+			tryOn(preview?.category, preview?.id);
+			sfx.close();
+		}
 		if (act === "random") {
 			equip(randomCostume(), { random: true });
 			sfx.select();
@@ -215,6 +273,39 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			sfx.boop();
 		}
 	});
+
+	/** Toggles a try-on of a locked item; the same item again takes it off. */
+	function tryOn(category: CostumeCategory, id: string) {
+		const same = preview?.category === category && preview?.id === id;
+		preview = same || !id ? null : { category, id };
+		draw(!reducedMotion());
+		renderMeta();
+		renderGrid(false);
+		if (!same) sfx.hover();
+	}
+
+	async function buy() {
+		if (!preview) return;
+		const { category, id } = preview;
+		buyBtn.setAttribute("disabled", "");
+		const res = await ctx.api.buyCostume(category, id);
+		if ("error" in res) {
+			sfx.error();
+			starsEl.textContent = res.error;
+			buyBtn.removeAttribute("disabled");
+			return;
+		}
+		wallet = res.settings.wallet;
+		equip({ ...costume, [category]: id });
+		sfx.select();
+		ctx.setMood("happy");
+		setTimeout(() => ctx.setMood(null), 1000);
+		if (!reducedMotion())
+			$(".ward-wallet", el).animate(
+				[{ transform: "scale(1.25)" }, { transform: "none" }],
+				{ duration: 320, easing: "cubic-bezier(.34,1.56,.64,1)" },
+			);
+	}
 
 	// Preview Clippy watches your cursor too.
 	let mouse: { x: number; y: number; t: number } | null = null;
@@ -248,10 +339,15 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			renderGrid(true);
 		},
 		onSettings(s) {
-			if (JSON.stringify(s.costume) !== JSON.stringify(costume)) {
-				const prev = costume;
+			const walletChanged = JSON.stringify(s.wallet) !== JSON.stringify(wallet);
+			const costumeChanged =
+				JSON.stringify(s.costume) !== JSON.stringify(costume);
+			wallet = s.wallet;
+			if (costumeChanged) {
 				costume = { ...EMPTY_COSTUME, ...s.costume };
-				applyCostume(svg, costume, prev, { uid: "wp", animate: false });
+				draw(false);
+			}
+			if (walletChanged || costumeChanged) {
 				renderMeta();
 				renderGrid(false);
 			}

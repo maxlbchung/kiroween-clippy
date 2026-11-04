@@ -15,6 +15,7 @@ const ICON_NAMES = new Set([
 	"info",
 	"check",
 	"none",
+	"coin",
 ]);
 
 /**

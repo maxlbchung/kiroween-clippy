@@ -100,7 +100,8 @@ export function setSoundEnabled(on) {
 	enabled = !!on;
 }
 
-function tone(
+/** Play one synthesized note. `at` and `dur` are in seconds. */
+export function tone(
 	freq: number,
 	{
 		at = 0,
