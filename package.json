@@ -20,15 +20,15 @@
 		"dist:win:zip": "electron-builder --win zip --x64"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.6.3",
+		"@biomejs/biome": "2.6.3",
 		"@electron-forge/cli": "8.0.1",
-		"@resvg/resvg-js": "^2.6.2",
+		"@resvg/resvg-js": "2.6.2",
 		"chokidar": "6.0.0",
-		"electron": "^45.1.0",
+		"electron": "45.1.0",
 		"electron-builder": "26.18.0",
-		"icon-gen": "^5.0.0",
-		"rolldown": "^1.2.15",
-		"typescript": "^7.0.2"
+		"icon-gen": "5.0.0",
+		"rolldown": "1.2.15",
+		"typescript": "7.0.2"
 	},
 	"build": {
 		"appId": "com.kiroween.clippy",

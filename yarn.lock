@@ -15,7 +15,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@biomejs/biome@npm:^2.6.3":
+"@biomejs/biome@npm:2.6.3":
   version: 2.6.3
   resolution: "@biomejs/biome@npm:2.6.3"
   dependencies:
@@ -821,7 +821,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@resvg/resvg-js@npm:^2.6.2":
+"@resvg/resvg-js@npm:2.6.2":
   version: 2.6.2
   resolution: "@resvg/resvg-js@npm:2.6.2"
   dependencies:
@@ -1975,7 +1975,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:^45.1.0":
+"electron@npm:45.1.0":
   version: 45.1.0
   resolution: "electron@npm:45.1.0"
   dependencies:
@@ -2500,7 +2500,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"icon-gen@npm:^5.0.0":
+"icon-gen@npm:5.0.0":
   version: 5.0.0
   resolution: "icon-gen@npm:5.0.0"
   dependencies:
@@ -2761,15 +2761,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "kiroween-clippy@workspace:."
   dependencies:
-    "@biomejs/biome": "npm:^2.6.3"
+    "@biomejs/biome": "npm:2.6.3"
     "@electron-forge/cli": "npm:8.0.1"
-    "@resvg/resvg-js": "npm:^2.6.2"
+    "@resvg/resvg-js": "npm:2.6.2"
     chokidar: "npm:6.0.0"
-    electron: "npm:^45.1.0"
+    electron: "npm:45.1.0"
     electron-builder: "npm:26.18.0"
-    icon-gen: "npm:^5.0.0"
-    rolldown: "npm:^1.2.15"
-    typescript: "npm:^7.0.2"
+    icon-gen: "npm:5.0.0"
+    rolldown: "npm:1.2.15"
+    typescript: "npm:7.0.2"
   languageName: unknown
   linkType: soft
 
@@ -3411,7 +3411,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rolldown@npm:^1.2.15":
+"rolldown@npm:1.2.15":
   version: 1.2.15
   resolution: "rolldown@npm:1.2.15"
   dependencies:
@@ -3895,7 +3895,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^7.0.2":
+"typescript@npm:7.0.2":
   version: 7.0.2
   resolution: "typescript@npm:7.0.2"
   dependencies:
@@ -3966,7 +3966,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^7.0.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A7.0.2#optional!builtin<compat/typescript>":
   version: 7.0.2
   resolution: "typescript@patch:typescript@npm%3A7.0.2#optional!builtin<compat/typescript>::version=7.0.2&hash=3bafbf"
   dependencies:
