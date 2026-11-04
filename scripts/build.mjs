@@ -54,6 +54,8 @@ export async function buildBundle(row) {
 			file: path.join(DIST, row.out),
 			format: row.format,
 			codeSplitting: false,
+			minify: true,
+			comments: false,
 		},
 	});
 }
