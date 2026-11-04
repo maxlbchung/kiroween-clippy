@@ -26,6 +26,7 @@ import { createAgent } from "./agent.js";
 import { Arcade } from "./arcade.js";
 import { Panels } from "./panels.js";
 import { Pet } from "./pet.js";
+import { configureWindowPlatform } from "./platform.js";
 import { Settings } from "./settings.js";
 import { awardCredits, buyCostume, guardPatch, keepWornItems } from "./shop.js";
 import { FakeSpeech, transcribeOpenAI, WindowsSpeech } from "./speech.js";
@@ -46,6 +47,11 @@ const ICONS = app.isPackaged
 	: path.join(ROOT, "build", "icons");
 const PRELOAD = path.join(COMPILED, "preload.js");
 const APP_ORIGIN = "app://clippy";
+
+configureWindowPlatform({
+	platform: process.platform,
+	appendSwitch: (name, value) => app.commandLine.appendSwitch(name, value),
+});
 
 app.setAppUserModelId("com.kiroween.clippy");
 if (process.env.CLIPPY_USER_DATA)

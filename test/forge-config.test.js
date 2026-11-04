@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { test } from "node:test";
 import config from "../forge.config.js";
+import { configureWindowPlatform } from "../src/main/platform.ts";
 
 test("preStart builds output before Forge launches the app", async () => {
 	await config.hooks.preStart({});
@@ -27,4 +28,24 @@ test("postStart starts the watcher without changing the child process", async ()
 	assert.equal(appProcess.pid, 123);
 	assert.equal(listeners.has("exit"), true);
 	listeners.get("exit")();
+});
+
+test("Linux uses X11 so Electron can move windows on Wayland desktops", () => {
+	const switches = [];
+	configureWindowPlatform({
+		platform: "linux",
+		appendSwitch: (...value) => switches.push(value),
+	});
+	assert.deepEqual(switches, [["ozone-platform", "x11"]]);
+});
+
+test("other platforms keep their default window backend", () => {
+	const switches = [];
+	for (const platform of ["win32", "darwin"]) {
+		configureWindowPlatform({
+			platform,
+			appendSwitch: (...value) => switches.push(value),
+		});
+	}
+	assert.deepEqual(switches, []);
 });
