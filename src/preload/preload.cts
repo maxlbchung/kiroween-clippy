@@ -20,6 +20,7 @@ const api: ClippyAPI = {
 	setSecret: (name, value) =>
 		ipcRenderer.invoke("settings:set-secret", name, value),
 	setHotkey: (accelerator) => ipcRenderer.invoke("hotkey:set", accelerator),
+	buyCostume: (category, id) => ipcRenderer.invoke("shop:buy", category, id),
 	onSettings: on("settings:changed"),
 
 	// window plumbing
@@ -71,6 +72,7 @@ const api: ClippyAPI = {
 	launchGame: (id) => ipcRenderer.send("game:launch", id),
 	gameInit: () => ipcRenderer.invoke("game:init"),
 	gameReady: () => ipcRenderer.send("game:ready"),
+	gameRound: (result) => ipcRenderer.invoke("game:round", result),
 	exitGame: (result) => ipcRenderer.send("game:exit", result),
 
 	// app

@@ -15,6 +15,7 @@ import {
 } from "electron";
 import type {
 	ChatMessage,
+	CostumeCategory,
 	DictationEvent,
 	GameId,
 	GameResult,
@@ -26,6 +27,7 @@ import { Arcade } from "./arcade.js";
 import { Panels } from "./panels.js";
 import { Pet } from "./pet.js";
 import { Settings } from "./settings.js";
+import { awardCredits, buyCostume, guardPatch, keepWornItems } from "./shop.js";
 import { FakeSpeech, transcribeOpenAI, WindowsSpeech } from "./speech.js";
 import { createTray } from "./tray.js";
 
@@ -94,6 +96,8 @@ let agent: ReturnType<typeof createAgent> | undefined;
 let speech: { windows: WindowsSpeech; fake?: FakeSpeech } | undefined;
 let trayCtl: ReturnType<typeof createTray> | undefined;
 let quitting = false;
+// Credits earned since the current game was launched.
+let gameCredits = 0;
 const chats = new Map<string, AbortController>();
 
 function broadcast(channel: string, payload: unknown) {
@@ -159,7 +163,10 @@ function wireIpc() {
 
 	ipcMain.handle("settings:get", () => settings?.public);
 	ipcMain.handle("settings:patch", (_e, patch: SettingsPatch) =>
-		settings?.patch(patch),
+		settings?.patch(guardPatch(settings, patch)),
+	);
+	ipcMain.handle("shop:buy", (_e, category: CostumeCategory, id: string) =>
+		buyCostume(settings, category, id),
 	);
 	ipcMain.handle("settings:reset", () => settings?.reset());
 	ipcMain.handle(
@@ -219,9 +226,20 @@ function wireIpc() {
 	ipcMain.on("panel:drag-start", () => pet?.beginDragFromCursor());
 
 	// full-screen games
-	ipcMain.on("game:launch", (_e, id: GameId) => arcade?.launch(id));
+	ipcMain.on("game:launch", (_e, id: GameId) => {
+		if (!arcade?.playing) gameCredits = 0;
+		arcade?.launch(id);
+	});
 	ipcMain.handle("game:init", () => arcade?.init ?? null);
 	ipcMain.on("game:ready", () => arcade?.reveal());
+	ipcMain.handle("game:round", (_e, result: GameResult) => {
+		const clean = cleanGameResult(result);
+		if (!arcade?.playing || !clean || !settings)
+			return { earned: 0, credits: settings?.data.wallet.credits ?? 0 };
+		const reward = awardCredits(settings, clean.score);
+		gameCredits += reward.earned;
+		return reward;
+	});
 	ipcMain.on("game:exit", (_e, result: GameResult | null) =>
 		arcade?.exit(cleanGameResult(result)),
 	);
@@ -345,7 +363,10 @@ function onGameExit(result: GameResult | null) {
 				`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
 				`${points} points. I was going easy on you.`,
 			];
-	const text = lines[Math.floor(Math.random() * lines.length)];
+	const line = lines[Math.floor(Math.random() * lines.length)];
+	const text = gameCredits
+		? `${line} You earned ${gameCredits} credits for the wardrobe.`
+		: line;
 	pet?.send("pet:say", { kind: "game", text });
 }
 
@@ -398,6 +419,7 @@ app.whenReady().then(async () => {
 	);
 
 	settings = await new Settings(app.getPath("userData")).init();
+	keepWornItems(settings);
 	agent = createAgent({ settings });
 	speech = { windows: new WindowsSpeech(NATIVE) };
 	speech?.windows.on("event", relayDictation);
