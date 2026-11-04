@@ -737,6 +737,30 @@
 	}
 }
 
+.game-rules {
+	flex: 1;
+	margin: 0;
+	padding: 4px 8px 0 26px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 6px;
+}
+.game-rules li::marker {
+	color: var(--bad);
+}
+.game-foot {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 4px;
+}
+.game-best {
+	margin-right: auto;
+	font-size: 14px;
+	color: var(--ink-soft);
+}
+
 /* ======================================================================
    SETTINGS
    ====================================================================== */
