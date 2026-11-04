@@ -102,7 +102,7 @@ export type ChatEvent =
 
 export type Unsubscribe = () => void;
 
-export type GameId = "dodge";
+export type GameId = "dodge" | "quiz";
 
 /** Startup data for a full-screen game, in overlay window coordinates. */
 export type GameInit = {
@@ -116,7 +116,7 @@ export type GameInit = {
 
 export type GameResult = {
 	score: number;
-	/** Seconds survived. */
+	/** Seconds played in the round. */
 	time: number;
 	record: boolean;
 };

@@ -366,6 +366,17 @@ const EXIT_LINES: Record<
 					`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
 					`${points} points. I was going easy on you.`,
 				],
+	quiz: (points, result) =>
+		result.record
+			? [
+					`New trivia record: ${points} points! Big brain.`,
+					`${points} points, a new best! I'll need harder questions.`,
+				]
+			: [
+					`${points} points! You know your AI.`,
+					`${Math.round(result.time)} seconds of trivia, ${points} points. Smart cookie.`,
+					`${points} points. I'll go easier on the history next time.`,
+				],
 };
 
 function onGameExit(id: GameId, result: GameResult | null) {

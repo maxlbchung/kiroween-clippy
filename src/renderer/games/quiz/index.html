@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>AI Trivia</title>
+  <link rel="stylesheet" href="../../common/base.css">
+  <link rel="stylesheet" href="../../common/clippy.css">
+  <link rel="stylesheet" href="../../common/window.css">
+  <link rel="stylesheet" href="quiz.css">
+</head>
+<body>
+  <div id="dim"></div>
+  <section id="show" class="frame-window" aria-label="AI Trivia" hidden>
+    <div class="titlebar">
+      <span class="tb-glyph px" aria-hidden="true">?</span>
+      <div class="titlebar-text">AI Trivia.exe</div>
+      <button type="button" class="icon-btn" data-act="pause" aria-label="Pause"><span class="x-glyph"></span></button>
+    </div>
+    <div class="win-body">
+      <div class="marquee">
+        <div class="marquee-lights" aria-hidden="true"></div>
+        <div class="marquee-title px">CLIPPY'S AI TRIVIA</div>
+      </div>
+      <div class="q-meta">
+        <span id="q-num" class="px"></span>
+        <span id="q-topic" class="q-topic px"></span>
+      </div>
+      <div id="timer" class="timer" aria-hidden="true">
+        <div class="timer-well"><div id="timer-fill" class="timer-fill"></div></div>
+        <b id="timer-sec" class="px"></b>
+      </div>
+      <p id="q-text" class="q-text px" aria-live="polite"></p>
+      <div class="options">
+        <button type="button" class="opt" data-opt="0"><span class="opt-key px">A</span><span class="opt-text"></span><span class="opt-mark"></span></button>
+        <button type="button" class="opt" data-opt="1"><span class="opt-key px">B</span><span class="opt-text"></span><span class="opt-mark"></span></button>
+        <button type="button" class="opt" data-opt="2"><span class="opt-key px">C</span><span class="opt-text"></span><span class="opt-mark"></span></button>
+        <button type="button" class="opt" data-opt="3"><span class="opt-key px">D</span><span class="opt-text"></span><span class="opt-mark"></span></button>
+      </div>
+      <div class="q-slot">
+        <div id="foot" class="q-foot">
+          <button type="button" id="lifeline" class="btn" data-act="lifeline">50:50</button>
+          <p class="q-tip"><b class="px">Lifeline:</b> removes two wrong answers. One use per round.</p>
+          <p class="q-tip q-rules">Answer fast for a speed bonus, and keep a streak going for extra points. Click an answer or press <b>1–4</b> or <b>A–D</b>.</p>
+        </div>
+        <div id="reveal" class="reveal" role="status" hidden>
+          <p id="verdict" class="verdict px"></p>
+          <p id="fact" class="fact"></p>
+          <button type="button" id="next" class="btn btn-primary" data-act="next">Next</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div id="clippy"><div class="bob"></div></div>
+  <div id="bubble" class="px" role="status" aria-live="polite"></div>
+  <div id="hud" hidden>
+    <div class="hud-cell"><span class="hud-label">SCORE</span><b id="score" class="px">000000</b></div>
+    <div class="hud-cell"><span class="hud-label">BEST</span><b id="best" class="px">000000</b></div>
+    <div class="hud-cell"><span class="hud-label">STREAK</span><b id="streak" class="px">0</b></div>
+    <span class="hud-hint px">Esc to pause</span>
+  </div>
+  <div id="count" class="px" aria-live="assertive"></div>
+  <div id="dialog" class="frame-window" role="dialog" aria-modal="true" hidden></div>
+  <script type="module" src="quiz.js"></script>
+</body>
+</html>

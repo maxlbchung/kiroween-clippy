@@ -1,0 +1,743 @@
+/* AI Trivia: full-screen overlay where Clippy hosts a quiz show. */
+html,
+body {
+	width: 100%;
+	height: 100%;
+}
+body {
+	cursor: default;
+}
+
+/* Darkens the desktop like a studio around a spotlight on the stage, and
+   keeps the whole overlay hit-testable. */
+#dim {
+	position: fixed;
+	inset: 0;
+	background: radial-gradient(
+		ellipse 70% 80% at var(--stage-x, 50%) var(--stage-y, 50%),
+		rgba(30, 22, 80, 0.22),
+		rgba(10, 8, 34, 0.66)
+	);
+	opacity: 0.02;
+	transition: opacity 0.5s ease;
+}
+body.active #dim {
+	opacity: 1;
+}
+
+/* Clippy */
+#clippy {
+	position: absolute;
+	left: 0;
+	top: 0;
+	pointer-events: none;
+	will-change: transform;
+}
+#clippy .bob {
+	position: absolute;
+	inset: 0;
+	animation: hover-bob 1.4s ease-in-out infinite;
+}
+#clippy .clippy {
+	width: 100%;
+	height: 100%;
+}
+@keyframes hover-bob {
+	50% {
+		transform: translateY(-5px);
+	}
+}
+#clippy.mood-smug .c-brow-l {
+	transform: translateY(5px) rotate(12deg);
+}
+#clippy.mood-smug .c-brow-r {
+	transform: translateY(-9px) rotate(-10deg);
+}
+
+/* Speech bubble, with a tail pointing at Clippy. */
+#bubble {
+	position: absolute;
+	left: 0;
+	top: 0;
+	max-width: 240px;
+	padding: 7px 12px 8px;
+	background: var(--bubble);
+	border: 2px solid var(--bubble-edge);
+	border-radius: 12px;
+	box-shadow: var(--hard-shadow);
+	font-size: 15px;
+	line-height: 1.25;
+	pointer-events: none;
+	opacity: 0;
+	visibility: hidden;
+	transition:
+		opacity 0.15s,
+		visibility 0s 0.15s;
+}
+#bubble.show {
+	opacity: 1;
+	visibility: visible;
+	transition: opacity 0.1s;
+}
+#bubble::before,
+#bubble::after {
+	content: "";
+	position: absolute;
+	left: var(--tail, 50%);
+	border-style: solid;
+	border-color: transparent;
+}
+#bubble::before {
+	bottom: -13px;
+	margin-left: -9px;
+	border-width: 11px 9px 0;
+	border-top-color: var(--bubble-edge);
+}
+#bubble::after {
+	bottom: -9px;
+	margin-left: -6px;
+	border-width: 8px 6px 0;
+	border-top-color: var(--bubble);
+}
+#bubble.below::before {
+	top: -13px;
+	bottom: auto;
+	border-width: 0 9px 11px;
+	border-color: transparent transparent var(--bubble-edge);
+}
+#bubble.below::after {
+	top: -9px;
+	bottom: auto;
+	border-width: 0 6px 8px;
+	border-color: transparent transparent var(--bubble);
+}
+
+/* The quiz window */
+#show {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 600px;
+	transform-origin: 50% 30%;
+}
+#show[hidden] {
+	display: none;
+}
+#show.entered {
+	animation: show-in 0.4s var(--spring) both;
+}
+@keyframes show-in {
+	from {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+}
+#show.leaving {
+	animation: show-out 0.2s ease-in both;
+}
+@keyframes show-out {
+	to {
+		opacity: 0;
+		transform: scale(0.9);
+	}
+}
+#show .win-body {
+	gap: 10px;
+	padding: 8px 10px 10px;
+}
+#show .win-body > * {
+	transition:
+		filter 0.2s,
+		opacity 0.2s;
+}
+#show.standby .win-body > :not(.marquee),
+#show.dimmed .win-body > :not(.marquee) {
+	filter: blur(6px);
+	opacity: 0.55;
+}
+.tb-glyph {
+	display: grid;
+	place-items: center;
+	width: 16px;
+	height: 16px;
+	border: 1px solid var(--ink);
+	border-radius: 50%;
+	background: #ffd23f;
+	color: var(--ink);
+	font-size: 12px;
+	line-height: 1;
+	text-shadow: none;
+}
+
+.marquee {
+	position: relative;
+	padding: 11px 10px 10px;
+	text-align: center;
+	background: linear-gradient(#2a1458, #5a1f7c);
+	box-shadow: var(--bevel-in);
+	overflow: hidden;
+}
+.marquee-lights {
+	position: absolute;
+	inset: 3px;
+	pointer-events: none;
+	border: 5px dotted #ffd23f;
+	animation: chase 0.7s steps(1) infinite;
+}
+@keyframes chase {
+	50% {
+		border-color: #ff8a1f;
+	}
+}
+.marquee-title {
+	font-size: 24px;
+	letter-spacing: 0.12em;
+	color: #ffd23f;
+	text-shadow:
+		2px 2px 0 #e5484d,
+		4px 4px 0 rgba(0, 0, 0, 0.4);
+}
+
+.q-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 15px;
+}
+.q-topic {
+	padding: 1px 8px 2px;
+	border: 1px solid var(--ink);
+	background: var(--face-dk);
+	color: #fff;
+	font-size: 12px;
+	letter-spacing: 0.04em;
+	box-shadow: 2px 2px 0 rgba(23, 23, 28, 0.2);
+}
+.q-topic[data-topic="history"] {
+	background: #2f7cf6;
+}
+.q-topic[data-topic="concepts"] {
+	background: #1f9d55;
+}
+.q-topic[data-topic="scifi"] {
+	background: #8e4ec6;
+}
+.q-topic[data-topic="clippy"] {
+	background: #e5484d;
+}
+
+/* Win9x progress bar: whole blocks only. */
+.timer {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.timer-well {
+	flex: 1;
+	height: 20px;
+	padding: 2px;
+	background: var(--well);
+	box-shadow: var(--bevel-well);
+}
+.timer-fill {
+	height: 100%;
+	background: repeating-linear-gradient(
+		90deg,
+		var(--title-a) 0 10px,
+		transparent 10px 12px
+	);
+}
+.timer.low .timer-fill {
+	background: repeating-linear-gradient(
+		90deg,
+		var(--bad) 0 10px,
+		transparent 10px 12px
+	);
+}
+#timer-sec {
+	min-width: 2ch;
+	font-size: 20px;
+	font-weight: 400;
+	text-align: right;
+}
+.timer.low #timer-sec {
+	color: var(--bad);
+	animation: blink-low 0.5s steps(1) infinite;
+}
+@keyframes blink-low {
+	50% {
+		opacity: 0.35;
+	}
+}
+
+/* Room for three lines, so the window keeps its size between questions. */
+.q-text {
+	display: flex;
+	align-items: center;
+	min-height: calc(3 * 1.3em + 16px);
+	margin: 0;
+	padding: 8px 12px;
+	background: var(--well);
+	box-shadow: var(--bevel-well);
+	font-size: 19px;
+	line-height: 1.3;
+}
+#show.fresh .q-text {
+	animation: q-in 0.3s var(--ease-out) both;
+}
+@keyframes q-in {
+	from {
+		opacity: 0;
+		transform: translateX(-12px);
+	}
+}
+
+.options {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+.opt {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: 54px;
+	padding: 6px 10px 6px 7px;
+	border: 0;
+	background: var(--face);
+	box-shadow: var(--bevel-out);
+	font: 15px / 1.25 var(--font-ui);
+	text-align: left;
+	transition:
+		background 0.12s,
+		opacity 0.2s,
+		transform 0.12s var(--ease-out);
+}
+.opt:hover:not(:disabled) {
+	background: #fff6d6;
+}
+.opt:active:not(:disabled) {
+	box-shadow: var(--bevel-in);
+	transform: translate(1px, 1px);
+}
+.opt:disabled {
+	color: var(--ink);
+}
+.opt-key {
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 28px;
+	height: 28px;
+	background: var(--title-a);
+	color: #fff;
+	font-size: 16px;
+	box-shadow: 2px 2px 0 rgba(23, 23, 28, 0.3);
+	transition: background 0.15s;
+}
+.opt-text {
+	flex: 1;
+}
+.opt-mark {
+	flex: none;
+	display: grid;
+	place-items: center;
+}
+.opt-mark:empty {
+	display: none;
+}
+.opt-mark .x-glyph {
+	width: 14px;
+	height: 14px;
+	color: var(--bad);
+	filter: drop-shadow(1px 0 currentColor) drop-shadow(-1px 0 currentColor);
+}
+.opt.right {
+	background: #c8f0d4;
+	box-shadow: var(--bevel-in);
+	animation: opt-right 0.45s var(--spring);
+}
+.opt.right .opt-key {
+	background: var(--good);
+}
+@keyframes opt-right {
+	40% {
+		transform: scale(1.04);
+	}
+}
+.opt.wrong {
+	background: #ffd5d2;
+	box-shadow: var(--bevel-in);
+	animation: opt-wrong 0.35s ease-out;
+}
+.opt.wrong .opt-key {
+	background: var(--bad);
+}
+@keyframes opt-wrong {
+	25% {
+		transform: translateX(-5px);
+	}
+	50% {
+		transform: translateX(5px);
+	}
+	75% {
+		transform: translateX(-2px);
+	}
+}
+.opt.faded {
+	opacity: 0.5;
+}
+.opt.removed {
+	opacity: 0.35;
+}
+.opt.removed .opt-text {
+	text-decoration: line-through;
+}
+
+/* Shared slot for the lifeline panel and the answer reveal. Both fill it, so
+   the window keeps its size between asking and revealing. */
+.q-slot {
+	display: flex;
+	flex-direction: column;
+	min-height: 100px;
+}
+.q-foot {
+	flex: 1;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	align-content: center;
+	align-items: center;
+	gap: 6px 12px;
+	padding: 8px 10px;
+	border: 1px solid var(--face-lo);
+	box-shadow:
+		inset 1px 1px 0 var(--face-hi),
+		1px 1px 0 var(--face-hi);
+}
+.q-foot[hidden] {
+	display: none;
+}
+.q-foot .btn {
+	min-width: 84px;
+	min-height: 30px;
+	font-size: 15px;
+}
+.q-tip {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.35;
+}
+.q-tip b {
+	font-weight: 400;
+}
+.q-rules {
+	grid-column: 1 / -1;
+	color: var(--ink-soft);
+	font-size: 12px;
+}
+.q-rules b {
+	color: var(--ink);
+	font-weight: 700;
+}
+.reveal {
+	flex: 1;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-content: center;
+	align-items: end;
+	gap: 4px 12px;
+	padding: 8px 10px;
+	background: var(--bubble);
+	border: 1px solid var(--ink);
+	box-shadow: 2px 2px 0 rgba(23, 23, 28, 0.2);
+	animation: reveal-in 0.25s var(--ease-out) both;
+}
+.reveal[hidden] {
+	display: none;
+}
+@keyframes reveal-in {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+.verdict {
+	grid-column: 1 / -1;
+	margin: 0;
+	font-size: 18px;
+}
+.verdict.good {
+	color: var(--good);
+}
+.verdict.bad {
+	color: var(--bad);
+}
+.verdict b {
+	font-weight: 400;
+}
+.verdict .award {
+	margin-left: 6px;
+	color: var(--ink-soft);
+	font-size: 13px;
+}
+.fact {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.4;
+}
+.fact b {
+	font-family: var(--font-px);
+	font-weight: 400;
+}
+#next {
+	min-width: 104px;
+}
+
+/* Points floating up from a right answer. */
+.pts {
+	position: absolute;
+	z-index: 1;
+	font-size: 28px;
+	color: #fff;
+	text-shadow:
+		-2px 0 var(--good),
+		2px 0 var(--good),
+		0 -2px var(--good),
+		0 2px var(--good),
+		3px 4px 0 rgba(0, 0, 0, 0.35);
+	pointer-events: none;
+	animation: pts-up 1.1s ease-out forwards;
+}
+@keyframes pts-up {
+	from {
+		opacity: 0;
+		transform: translate(-50%, 0) scale(0.6);
+	}
+	15% {
+		opacity: 1;
+		transform: translate(-50%, -14px) scale(1.15);
+	}
+	70% {
+		opacity: 1;
+		transform: translate(-50%, -38px);
+	}
+	to {
+		opacity: 0;
+		transform: translate(-50%, -50px);
+	}
+}
+
+/* HUD, centred over the stage */
+#hud {
+	position: fixed;
+	top: 16px;
+	left: var(--stage-x, 50%);
+	transform: translateX(-50%);
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 6px 14px;
+	background: var(--bubble);
+	border: 2px solid var(--ink);
+	box-shadow: var(--hard-shadow);
+	white-space: nowrap;
+	pointer-events: none;
+}
+#hud[hidden] {
+	display: none;
+}
+.hud-cell {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+}
+.hud-label {
+	font: 600 11px var(--font-px);
+	letter-spacing: 0.08em;
+	color: var(--ink-soft);
+}
+.hud-cell b {
+	display: inline-block;
+	min-width: 4.1em;
+	font-size: 22px;
+	font-weight: 400;
+	letter-spacing: 0.06em;
+}
+.hud-cell #streak {
+	min-width: 2em;
+}
+.hud-hint {
+	font-size: 12px;
+	color: var(--ink-soft);
+	padding-left: 12px;
+	border-left: 1px solid var(--face-lo);
+}
+
+/* Countdown, over the quiz window */
+#count {
+	position: fixed;
+	left: var(--stage-x, 50%);
+	top: var(--stage-y, 42%);
+	transform: translate(-50%, -50%);
+	font-size: 112px;
+	color: #ffd23f;
+	text-shadow:
+		4px 4px 0 #e5484d,
+		8px 8px 0 rgba(0, 0, 0, 0.45);
+	white-space: nowrap;
+	pointer-events: none;
+}
+#count.pop {
+	animation: count-pop 0.5s var(--spring) both;
+}
+@keyframes count-pop {
+	from {
+		transform: translate(-50%, -50%) scale(2.2);
+		opacity: 0;
+	}
+	60% {
+		opacity: 1;
+	}
+}
+
+/* Pause and results dialogs, over the quiz window */
+#dialog {
+	position: fixed;
+	left: var(--stage-x, 50%);
+	top: var(--stage-y, 50%);
+	width: 340px;
+	transform: translate(-50%, -50%);
+}
+#dialog[hidden] {
+	display: none;
+}
+#dialog.entered {
+	animation: dlg-in 0.22s var(--ease-out) both;
+}
+@keyframes dlg-in {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -50%) scale(0.92);
+	}
+}
+#dialog .win-body {
+	gap: 12px;
+	padding: 14px 14px 12px;
+}
+.dlg-head {
+	display: flex;
+	gap: 12px;
+	align-items: center;
+}
+.dlg-head p {
+	margin: 0;
+}
+.dlg-title {
+	font-size: 16px;
+}
+.dlg-btns {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 2px;
+}
+.dlg-btns .btn {
+	min-width: 92px;
+}
+
+/* Message-box glyphs drawn in CSS: info and question. */
+.fw-icon {
+	position: relative;
+	flex: none;
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	border: 2px solid var(--ink);
+	border-radius: 50%;
+	background: #2f7cf6;
+	color: #fff;
+	font: 700 18px / 1 var(--font-px);
+	box-shadow: 2px 2px 0 rgba(23, 23, 28, 0.25);
+}
+.fw-icon.info::before {
+	content: "i";
+}
+.fw-icon.ask::before {
+	content: "?";
+}
+
+.go-score {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	padding: 8px 10px;
+	background: var(--well);
+	box-shadow: var(--bevel-well);
+}
+.go-score .label {
+	margin: 0;
+}
+.go-score b {
+	font-size: 32px;
+	font-weight: 400;
+	letter-spacing: 0.08em;
+}
+.go-new {
+	margin-left: auto;
+	font-size: 14px;
+	color: var(--bad);
+	animation: go-blink 0.8s steps(1) infinite;
+}
+@keyframes go-blink {
+	50% {
+		opacity: 0;
+	}
+}
+.go-stats {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 3px 12px;
+	margin: 0;
+	padding: 0 4px;
+}
+.go-stats dt {
+	color: var(--ink-soft);
+}
+.go-stats dd {
+	margin: 0;
+	text-align: right;
+	font-size: 13px;
+}
+.go-credits {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	background: #fff6d6;
+	box-shadow: var(--bevel-in);
+}
+.go-credits b {
+	font-size: 16px;
+	font-weight: 400;
+}
+.go-credits .hint {
+	margin-left: auto;
+}
+
+/* Honors reduced motion. The shared rule in base.css loses to the more
+   specific selectors above. */
+.reduce-motion #show,
+.reduce-motion #show *,
+.reduce-motion #clippy *,
+.reduce-motion #count,
+.reduce-motion #dialog,
+.reduce-motion #dialog * {
+	animation: none;
+	transition: none;
+}
+.reduce-motion .pts {
+	display: none;
+}
