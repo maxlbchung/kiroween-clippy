@@ -29,7 +29,7 @@ import {
 	tween,
 	type Vec,
 	wait,
-} from "../dodge/engine.js";
+} from "../motion.js";
 import { formatScore, loadBest, saveBest } from "../score.js";
 import { closePopup, DECOYS, type DecoyKind, draftPile } from "./catalog.js";
 import {

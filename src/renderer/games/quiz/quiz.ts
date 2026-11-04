@@ -23,10 +23,11 @@ import {
 	clamp,
 	pick,
 	type Script,
+	smooth,
 	tween,
 	type Vec,
 	wait,
-} from "../dodge/engine.js";
+} from "../motion.js";
 import { formatScore, loadBest, saveBest } from "../score.js";
 import { QUESTIONS } from "./questions.js";
 import {
@@ -156,8 +157,6 @@ const actor = {
 	lockRot: false,
 	mood: null as string | null,
 };
-
-const smooth = (rate: number, dt: number) => 1 - Math.exp(-rate * dt);
 
 /** Tilts Clippy into his horizontal motion, like the Dodge actor. */
 function updateActor(dt: number) {

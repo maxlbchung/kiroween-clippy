@@ -17,8 +17,6 @@ import {
 	sfx,
 	tone,
 } from "../../common/ui.js";
-import { formatScore, loadBest, saveBest } from "../score.js";
-import { director } from "./attacks.js";
 import {
 	clamp,
 	pick,
@@ -26,9 +24,11 @@ import {
 	type Script,
 	tween,
 	type Vec,
-	World,
 	wait,
-} from "./engine.js";
+} from "../motion.js";
+import { formatScore, loadBest, saveBest } from "../score.js";
+import { director } from "./attacks.js";
+import { World } from "./engine.js";
 
 type State =
 	| "intro"

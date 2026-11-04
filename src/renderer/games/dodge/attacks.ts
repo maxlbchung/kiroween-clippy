@@ -3,20 +3,22 @@
 
 import {
 	angleDiff,
-	angleTo,
-	type Beam,
 	clamp,
-	type Dialog,
-	dist,
 	easeOut,
-	type FlyingWindow,
 	pick,
 	rand,
 	type Script,
 	tween,
 	type Vec,
-	type World,
 	wait,
+} from "../motion.js";
+import {
+	angleTo,
+	type Beam,
+	type Dialog,
+	dist,
+	type FlyingWindow,
+	type World,
 } from "./engine.js";
 
 export type Attack = {
