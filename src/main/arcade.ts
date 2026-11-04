@@ -19,7 +19,7 @@ export class Arcade {
 	panels: Panels;
 	preload: string;
 	origin: string;
-	onExit: (result: GameResult | null) => void;
+	onExit: (id: GameId, result: GameResult | null) => void;
 	win: BrowserWindow | null = null;
 	init: GameInit | null = null;
 	revealed = false;
@@ -35,7 +35,7 @@ export class Arcade {
 		panels: Panels;
 		preload: string;
 		origin: string;
-		onExit: (result: GameResult | null) => void;
+		onExit: (id: GameId, result: GameResult | null) => void;
 	}) {
 		this.pet = pet;
 		this.panels = panels;
@@ -141,10 +141,11 @@ export class Arcade {
 	}
 
 	finish(result: GameResult | null) {
+		const id = this.init?.id;
 		this.win = null;
 		this.init = null;
 		if (this.pet.win && !this.pet.win.isDestroyed())
 			this.pet.win.showInactive();
-		this.onExit(result);
+		this.onExit(id, result);
 	}
 }

@@ -350,19 +350,28 @@ function cleanGameResult(result: GameResult | null): GameResult | null {
 	return { score, time, record: result.record === true };
 }
 
-function onGameExit(result: GameResult | null) {
+/** Clippy's lines after a round with points, by game. */
+const EXIT_LINES: Record<
+	GameId,
+	(points: string, result: GameResult) => string[]
+> = {
+	dodge: (points, result) =>
+		result.record
+			? [
+					`New high score: ${points}! I'll get you next time.`,
+					`${points} points, a new record! I demand a rematch.`,
+				]
+			: [
+					`${points} points! Rematch anytime.`,
+					`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
+					`${points} points. I was going easy on you.`,
+				],
+};
+
+function onGameExit(id: GameId, result: GameResult | null) {
 	if (quitting || !result || result.score <= 0) return;
 	const points = result.score.toLocaleString("en-US");
-	const lines = result.record
-		? [
-				`New high score: ${points}! I'll get you next time.`,
-				`${points} points, a new record! I demand a rematch.`,
-			]
-		: [
-				`${points} points! Rematch anytime.`,
-				`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
-				`${points} points. I was going easy on you.`,
-			];
+	const lines = EXIT_LINES[id]?.(points, result) ?? [`${points} points!`];
 	const line = lines[Math.floor(Math.random() * lines.length)];
 	const text = gameCredits
 		? `${line} You earned ${gameCredits} credits for the wardrobe.`
