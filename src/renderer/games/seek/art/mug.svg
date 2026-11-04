@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+	<title>A coffee mug with a heart</title>
+	<path d="M44 24 Q58 24 58 36 Q58 48 42 48" fill="none" stroke="#17171c" stroke-width="7"/>
+	<path d="M44 24 Q58 24 58 36 Q58 48 42 48" fill="none" stroke="#ffffff" stroke-width="3.5"/>
+	<path d="M8 16 H48 V52 Q48 60 40 60 H16 Q8 60 8 52 Z" fill="#ffffff" stroke="#17171c" stroke-width="2.5"/>
+	<ellipse cx="28" cy="16" rx="20" ry="4" fill="#6b4423" stroke="#17171c" stroke-width="2.5"/>
+	<path d="M28 46 L18 36 Q14 30 20 27 Q25 25 28 30 Q31 25 36 27 Q42 30 38 36 Z" fill="#e5484d"/>
+	<path d="M20 10 Q16 4 22 0 M32 10 Q28 4 34 0" fill="none" stroke="#a7a294" stroke-width="2" stroke-linecap="round"/>
+</svg>

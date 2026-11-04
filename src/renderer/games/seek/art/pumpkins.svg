@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+	<title>Jack-o-lanterns in a pumpkin patch at night</title>
+	<defs>
+		<linearGradient id="night" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#160f38"/>
+			<stop offset="1" stop-color="#4b2a74"/>
+		</linearGradient>
+		<radialGradient id="glow">
+			<stop offset="0" stop-color="#ffd23f" stop-opacity="0.55"/>
+			<stop offset="1" stop-color="#ffd23f" stop-opacity="0"/>
+		</radialGradient>
+	</defs>
+	<rect width="320" height="200" fill="url(#night)"/>
+	<g fill="#fff6c0">
+		<circle cx="30" cy="24" r="1.5"/>
+		<circle cx="84" cy="40" r="1"/>
+		<circle cx="140" cy="18" r="1.5"/>
+		<circle cx="196" cy="34" r="1"/>
+		<circle cx="300" cy="60" r="1.5"/>
+		<circle cx="120" cy="64" r="1"/>
+	</g>
+	<circle cx="252" cy="44" r="24" fill="#fff3c4"/>
+	<circle cx="244" cy="38" r="5" fill="#eadca6"/>
+	<circle cx="260" cy="54" r="3" fill="#eadca6"/>
+	<path d="M0 140 Q80 124 160 136 T320 130 V200 H0 Z" fill="#24183c"/>
+	<g fill="#3a2a1e">
+		<rect x="18" y="112" width="8" height="40"/>
+		<rect x="70" y="108" width="8" height="40"/>
+		<rect x="122" y="112" width="8" height="38"/>
+		<rect x="10" y="120" width="130" height="5"/>
+		<rect x="10" y="134" width="130" height="5"/>
+	</g>
+	<path d="M140 176 Q190 150 236 172 Q260 184 300 160" fill="none" stroke="#2f6b2a" stroke-width="4"/>
+	<circle cx="100" cy="160" r="46" fill="url(#glow)"/>
+	<circle cx="214" cy="166" r="40" fill="url(#glow)"/>
+	<g stroke="#7a3a00" stroke-width="2.5">
+		<ellipse cx="100" cy="162" rx="40" ry="30" fill="#ff8a1f"/>
+		<path d="M100 132 Q86 162 100 192 Q114 162 100 132" fill="#ef7a10"/>
+		<ellipse cx="214" cy="170" rx="30" ry="24" fill="#ff8a1f"/>
+		<path d="M214 146 Q204 170 214 194 Q224 170 214 146" fill="#ef7a10"/>
+		<ellipse cx="282" cy="180" rx="20" ry="15" fill="#ff9b3d"/>
+	</g>
+	<path d="M98 134 Q96 120 106 114" fill="none" stroke="#3f7a2a" stroke-width="6" stroke-linecap="round"/>
+	<path d="M212 148 Q212 136 220 132" fill="none" stroke="#3f7a2a" stroke-width="5" stroke-linecap="round"/>
+	<g fill="#ffe066">
+		<path d="M78 150 L90 156 L78 160 Z M122 150 L110 156 L122 160 Z"/>
+		<path d="M76 172 Q100 190 124 172 L116 176 L110 170 L104 178 L96 170 L90 178 L84 170 Z"/>
+		<path d="M200 162 L210 166 L202 170 Z M228 162 L218 166 L226 170 Z"/>
+		<path d="M200 180 Q214 190 228 180 Q214 184 200 180 Z"/>
+	</g>
+</svg>
