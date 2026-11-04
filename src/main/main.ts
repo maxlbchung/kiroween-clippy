@@ -377,6 +377,17 @@ const EXIT_LINES: Record<
 					`${Math.round(result.time)} seconds of trivia, ${points} points. Smart cookie.`,
 					`${points} points. I'll go easier on the history next time.`,
 				],
+	seek: (points, result) =>
+		result.record
+			? [
+					`New best: ${points}! I need better hiding spots.`,
+					`${points} points, a record! Were you peeking?`,
+				]
+			: [
+					`${points} points! Ready or not, I'll hide again.`,
+					`Found in ${Math.round(result.time)} seconds. Did you peek?`,
+					`${points} points. Next time I'm hiding in the Recycle Bin.`,
+				],
 };
 
 function onGameExit(id: GameId, result: GameResult | null) {

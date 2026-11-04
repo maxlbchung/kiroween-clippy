@@ -10,6 +10,7 @@ import type { Pet } from "./pet.js";
 const PAGES: Record<GameId, string> = {
 	dodge: "renderer/games/dodge/index.html",
 	quiz: "renderer/games/quiz/index.html",
+	seek: "renderer/games/seek/index.html",
 };
 
 // Shows the overlay anyway if the renderer never reports that it is ready.

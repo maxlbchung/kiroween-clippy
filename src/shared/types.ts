@@ -101,7 +101,7 @@ export type ChatEvent =
 
 export type Unsubscribe = () => void;
 
-export type GameId = "dodge" | "quiz";
+export type GameId = "dodge" | "quiz" | "seek";
 
 /** Startup data for a full-screen game, in overlay window coordinates. */
 export type GameInit = {
