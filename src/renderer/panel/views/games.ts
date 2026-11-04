@@ -6,6 +6,7 @@ import { POINTS_PER_CREDIT } from "../../../shared/shop.js";
 import type { GameId, RendererContext } from "../../../shared/types.js";
 import { icon } from "../../common/icons.js";
 import { $, esc, sfx } from "../../common/ui.js";
+import { ROUND_SIZE, TIME_LIMIT } from "../../games/quiz/trivia.js";
 import { formatScore, loadBest } from "../../games/score.js";
 
 type Game = {
@@ -70,6 +71,24 @@ export const GAMES: Game[] = [
 			rules: [
 				"Clippy attacks your mouse cursor with fireballs, pop-ups, dives and worse.",
 				"One hit and it's game over. Close calls earn bonus points.",
+				CREDIT_RULE,
+				"Press <b>Esc</b> to pause.",
+			],
+		}),
+	},
+	{
+		id: "quiz",
+		name: "Trivia",
+		blurb: "Know your AI?",
+		color: "#2f7cf6",
+		mount: titleCard({
+			id: "quiz",
+			title: "AI TRIVIA",
+			tagline: "It looks like you're trying to prove you know AI.",
+			rules: [
+				`Clippy hosts ${ROUND_SIZE} multiple-choice questions on AI history, how AI works, robots and Clippy himself.`,
+				`Answer each within ${TIME_LIMIT} seconds by clicking or pressing <b>1–4</b> or <b>A–D</b>. Fast answers and streaks earn bonus points.`,
+				"One <b>50:50</b> lifeline per round removes two wrong answers.",
 				CREDIT_RULE,
 				"Press <b>Esc</b> to pause.",
 			],
