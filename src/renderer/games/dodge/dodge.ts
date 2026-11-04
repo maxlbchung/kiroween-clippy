@@ -17,6 +17,7 @@ import {
 	sfx,
 	tone,
 } from "../../common/ui.js";
+import { formatScore, loadBest, saveBest } from "../score.js";
 import { director } from "./attacks.js";
 import {
 	clamp,
@@ -28,7 +29,6 @@ import {
 	World,
 	wait,
 } from "./engine.js";
-import { formatScore, loadBest, saveBest } from "./score.js";
 
 type State =
 	| "intro"
@@ -157,7 +157,7 @@ function makeWorld(at: Vec) {
 let world = makeWorld(home);
 let state: State = "intro";
 let scripts: Script[] = [];
-let best = loadBest();
+let best = loadBest("dodge");
 let lastResult: GameResult | null = null;
 // Credits for the last finished round, resolved by the main process.
 let reward: Promise<GameRoundReward | null> = Promise.resolve(null);
@@ -311,8 +311,8 @@ function pause() {
 function gameOver(at: Vec) {
 	state = "dying";
 	const score = world.score;
-	const record = saveBest(score);
-	best = loadBest();
+	const record = saveBest("dodge", score);
+	best = loadBest("dodge");
 	endRound({ score, time: world.time, record });
 	const c = world.clippy;
 	c.mood = "happy";
@@ -407,7 +407,7 @@ function quit() {
 	if (state === "playing" || state === "paused" || state === "countdown") {
 		const score = world.score;
 		if (score > 0)
-			endRound({ score, time: world.time, record: saveBest(score) });
+			endRound({ score, time: world.time, record: saveBest("dodge", score) });
 	}
 	state = "leaving";
 	scripts = [];
