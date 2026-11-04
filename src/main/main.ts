@@ -16,10 +16,13 @@ import {
 import type {
 	ChatMessage,
 	DictationEvent,
+	GameId,
+	GameResult,
 	PanelName,
 	SettingsPatch,
 } from "../shared/types.js";
 import { createAgent } from "./agent.js";
+import { Arcade } from "./arcade.js";
 import { Panels } from "./panels.js";
 import { Pet } from "./pet.js";
 import { Settings } from "./settings.js";
@@ -86,6 +89,7 @@ function serveAppProtocol() {
 let settings: Settings | undefined;
 let pet: Pet | undefined;
 let panels: Panels | undefined;
+let arcade: Arcade | undefined;
 let agent: ReturnType<typeof createAgent> | undefined;
 let speech: { windows: WindowsSpeech; fake?: FakeSpeech } | undefined;
 let trayCtl: ReturnType<typeof createTray> | undefined;
@@ -103,6 +107,7 @@ function registerHotkey(accelerator: string) {
 	if (!accelerator) return { ok: true };
 	try {
 		const ok = globalShortcut.register(accelerator, () => {
+			if (arcade?.playing) return;
 			if (panels?.visible && panels?.current === "direct")
 				panels?.send("direct:toggle");
 			else panels?.open("direct");
@@ -142,6 +147,7 @@ function relayDictation(evt: DictationEvent) {
 async function quitWithGoodbye() {
 	if (quitting) return;
 	quitting = true;
+	arcade?.close();
 	await panels?.close();
 	pet?.send("pet:goodbye");
 	setTimeout(() => app.quit(), 520);
@@ -211,6 +217,14 @@ function wireIpc() {
 	ipcMain.on("panel:close", () => panels?.close());
 	ipcMain.on("panel:ack", (_e, token: number) => panels?.ack(token));
 	ipcMain.on("panel:drag-start", () => pet?.beginDragFromCursor());
+
+	// full-screen games
+	ipcMain.on("game:launch", (_e, id: GameId) => arcade?.launch(id));
+	ipcMain.handle("game:init", () => arcade?.init ?? null);
+	ipcMain.on("game:ready", () => arcade?.reveal());
+	ipcMain.on("game:exit", (_e, result: GameResult | null) =>
+		arcade?.exit(cleanGameResult(result)),
+	);
 
 	// chat (stub agent, real streaming contract)
 	ipcMain.on(
@@ -311,6 +325,30 @@ function wireIpc() {
 	ipcMain.on("app:quit", quitWithGoodbye);
 }
 
+function cleanGameResult(result: GameResult | null): GameResult | null {
+	if (!result || typeof result !== "object") return null;
+	const score = Math.max(0, Math.floor(Number(result.score) || 0));
+	const time = Math.max(0, Number(result.time) || 0);
+	return { score, time, record: result.record === true };
+}
+
+function onGameExit(result: GameResult | null) {
+	if (quitting || !result || result.score <= 0) return;
+	const points = result.score.toLocaleString("en-US");
+	const lines = result.record
+		? [
+				`New high score: ${points}! I'll get you next time.`,
+				`${points} points, a new record! I demand a rematch.`,
+			]
+		: [
+				`${points} points! Rematch anytime.`,
+				`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
+				`${points} points. I was going easy on you.`,
+			];
+	const text = lines[Math.floor(Math.random() * lines.length)];
+	pet?.send("pet:say", { kind: "game", text });
+}
+
 function onSettingsChange(
 	data: import("../shared/types.js").SettingsData,
 	prev: import("../shared/types.js").SettingsData,
@@ -374,6 +412,13 @@ app.whenReady().then(async () => {
 		settings,
 		preload: PRELOAD,
 		url: `${APP_ORIGIN}/renderer/panel/index.html`,
+	});
+	arcade = new Arcade({
+		pet,
+		panels,
+		preload: PRELOAD,
+		origin: APP_ORIGIN,
+		onExit: onGameExit,
 	});
 	pet.create();
 	panels.create();

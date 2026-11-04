@@ -94,6 +94,25 @@ export type ChatEvent =
 
 export type Unsubscribe = () => void;
 
+export type GameId = "dodge";
+
+/** Startup data for a full-screen game, in overlay window coordinates. */
+export type GameInit = {
+	id: GameId;
+	/** Pet scale, so the overlay Clippy matches the desktop one. */
+	scale: number;
+	/** Clippy's SVG box where the pet window drew him. */
+	home: Rect;
+	cursor: Point;
+};
+
+export type GameResult = {
+	score: number;
+	/** Seconds survived. */
+	time: number;
+	record: boolean;
+};
+
 export type RendererContext = {
 	api: ClippyAPI;
 	settings: PublicSettings;
@@ -165,6 +184,10 @@ export interface ClippyAPI {
 	): Promise<{ status: "empty" | "queued"; agent?: false; model?: string }>;
 	onDictation(callback: (event: DictationEvent) => void): Unsubscribe;
 	onDirectToggle(callback: () => void): Unsubscribe;
+	launchGame(id: GameId): void;
+	gameInit(): Promise<GameInit | null>;
+	gameReady(): void;
+	exitGame(result: GameResult | null): void;
 	appInfo(): Promise<{
 		version: string;
 		electron: string;

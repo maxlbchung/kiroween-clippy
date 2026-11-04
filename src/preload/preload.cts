@@ -67,6 +67,12 @@ const api: ClippyAPI = {
 	onDictation: on("dictation:event"),
 	onDirectToggle: on("direct:toggle"),
 
+	// full-screen games
+	launchGame: (id) => ipcRenderer.send("game:launch", id),
+	gameInit: () => ipcRenderer.invoke("game:init"),
+	gameReady: () => ipcRenderer.send("game:ready"),
+	exitGame: (result) => ipcRenderer.send("game:exit", result),
+
 	// app
 	appInfo: () => ipcRenderer.invoke("app:info"),
 	hidePet: () => ipcRenderer.send("app:hide"),
