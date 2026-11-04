@@ -5,5 +5,8 @@ export function configureWindowPlatform({
 	platform: NodeJS.Platform;
 	appendSwitch: (name: string, value: string) => void;
 }) {
-	if (platform === "linux") appendSwitch("ozone-platform", "x11");
+	if (platform === "linux") {
+		appendSwitch("ozone-platform", "x11");
+		appendSwitch("in-process-gpu", "true");
+	}
 }
