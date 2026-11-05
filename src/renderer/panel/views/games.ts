@@ -8,6 +8,7 @@ import { icon } from "../../common/icons.js";
 import { $, esc, sfx } from "../../common/ui.js";
 import { ROUND_SIZE, TIME_LIMIT } from "../../games/quiz/trivia.js";
 import { formatScore, loadBest } from "../../games/score.js";
+import { HIDERS } from "../../games/seek/layout.js";
 
 type Game = {
 	id: string;
@@ -57,6 +58,7 @@ function titleCard(card: TitleCard) {
 }
 
 const CREDIT_RULE = `Every ${POINTS_PER_CREDIT} points earn a credit for unlocking costumes.`;
+const PAUSE_RULE = "Press <b>Esc</b> to pause.";
 
 export const GAMES: Game[] = [
 	{
@@ -72,7 +74,7 @@ export const GAMES: Game[] = [
 				"Clippy attacks your mouse cursor with fireballs, pop-ups, dives and worse.",
 				"One hit and it's game over. Close calls earn bonus points.",
 				CREDIT_RULE,
-				"Press <b>Esc</b> to pause.",
+				PAUSE_RULE,
 			],
 		}),
 	},
@@ -90,25 +92,25 @@ export const GAMES: Game[] = [
 				`Answer each within ${TIME_LIMIT} seconds by clicking or pressing <b>1–4</b> or <b>A–D</b>. Fast answers and streaks earn bonus points.`,
 				"One <b>50:50</b> lifeline per round removes two wrong answers.",
 				CREDIT_RULE,
-				"Press <b>Esc</b> to pause.",
+				PAUSE_RULE,
 			],
 		}),
 	},
 	{
 		id: "seek",
 		name: "Seek",
-		blurb: "Find all 3!",
+		blurb: `Find all ${HIDERS}!`,
 		color: "#30a46c",
 		mount: titleCard({
 			id: "seek",
 			title: "HIDE & SEEK",
 			tagline: "It looks like you're trying to find me.",
 			rules: [
-				"Clippy and two clones hide in a pile of windows. Find all 3 before time runs out.",
+				`Clippy and his clones hide in a pile of windows. Find all ${HIDERS} before time runs out.`,
 				"Drag title bars and bring windows forward to look behind and inside them.",
 				"Staplers, paper clips and wild clicking cost points. Faster finds score more.",
 				CREDIT_RULE,
-				"Press <b>Esc</b> to pause.",
+				PAUSE_RULE,
 			],
 		}),
 	},
