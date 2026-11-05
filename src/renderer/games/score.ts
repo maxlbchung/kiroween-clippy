@@ -26,6 +26,11 @@ export function saveBest(id: GameId, score: number): boolean {
 	return true;
 }
 
+/** Whole seconds as m:ss, like a stopwatch. */
+export function formatClock(seconds: number) {
+	return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 /** Zero-padded six-digit score, like an arcade cabinet. */
 export function formatScore(score: number) {
 	return String(Math.min(999999, Math.floor(score))).padStart(6, "0");

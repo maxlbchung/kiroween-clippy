@@ -6,6 +6,7 @@
 
 import { esc } from "../../common/ui.js";
 import { pick, type Rng, rand, shuffle } from "../random.js";
+import { formatClock } from "../score.js";
 import type { Pose, Size } from "./layout.js";
 
 export type Draft = {
@@ -453,8 +454,6 @@ function viewer(rng: Rng): Draft {
 function video(rng: Rng): Draft {
 	const tank = rng() < 0.6;
 	const total = int(rng, 90, 400);
-	const fmt = (s: number) =>
-		`${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 	return {
 		kind: "video",
 		title: `${tank ? "fishtank.avi" : "ghost_cam.mpg"} - Media Player`,
@@ -474,7 +473,7 @@ function video(rng: Rng): Draft {
 						: slot("right", "right:52.6%;top:52%;width:34px;height:30px")
 				}
       </div>
-      <div class="ctrl"><span class="play"></span><span class="stop"></span><div class="seek"><i style="--len:${total}s"></i></div><span class="time px">${fmt(int(rng, 5, total - 5))} / ${fmt(total)}</span></div>`,
+      <div class="ctrl"><span class="play"></span><span class="stop"></span><div class="seek"><i style="--len:${total}s"></i></div><span class="time px">${formatClock(int(rng, 5, total - 5))} / ${formatClock(total)}</span></div>`,
 	};
 }
 
@@ -725,7 +724,10 @@ function terminal(rng: Rng): Draft {
 	};
 }
 
-const ERRORS: [string, string, string, string[]][] = [
+/** A message box: glyph, title, text and button labels. */
+type Message = [string, string, string, string[]];
+
+const ERRORS: Message[] = [
 	[
 		"err",
 		"Error",
@@ -768,10 +770,7 @@ const ERRORS: [string, string, string, string[]][] = [
 ];
 
 /** A message box. `spec` overrides the random message. */
-export function messageBox(
-	rng: Rng,
-	spec?: [string, string, string, string[]],
-): Draft {
+export function messageBox(rng: Rng, spec?: Message): Draft {
 	const [icon, title, text, buttons] = spec ?? pick(ERRORS, rng);
 	return {
 		kind: "dialog",
@@ -933,7 +932,7 @@ export function draftPile(rng: Rng, full: (drafts: Draft[]) => boolean) {
 
 /** A cheeky message box that appears when the player closes a window. */
 export function closePopup(rng: Rng, depth: number): Draft {
-	const lines: [string, string, string, string[]][] = depth
+	const lines: Message[] = depth
 		? [
 				[
 					"ask",

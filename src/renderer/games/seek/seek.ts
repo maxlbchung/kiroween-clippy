@@ -33,7 +33,7 @@ import {
 	whoosh,
 } from "../overlay.js";
 import { pick, type Rng, rand, seeded } from "../random.js";
-import { formatScore } from "../score.js";
+import { formatClock, formatScore } from "../score.js";
 import { closePopup, DECOYS, type DecoyKind, draftPile } from "./catalog.js";
 import {
 	chooseDecoys,
@@ -556,11 +556,7 @@ const setText = (el: HTMLElement, text: string) => {
 function updateHud() {
 	const r = round;
 	const left = r ? Math.max(0, limit - r.elapsed) : limit;
-	const secs = Math.ceil(left);
-	setText(
-		timeEl,
-		`${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`,
-	);
+	setText(timeEl, formatClock(Math.ceil(left)));
 	timeEl.classList.toggle("low", !!r && state === "playing" && left <= 10);
 	setText(scoreEl, formatScore(points()));
 	heads.forEach((h, i) => {
