@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>Clippy Clicker</title>
+  <link rel="stylesheet" href="../../common/base.css">
+  <link rel="stylesheet" href="../../common/clippy.css">
+  <link rel="stylesheet" href="../../common/window.css">
+  <link rel="stylesheet" href="../overlay.css">
+  <link rel="stylesheet" href="clicker.css">
+</head>
+<body>
+  <div id="dim"></div>
+  <main id="stage" hidden>
+    <div class="counter">
+      <b id="clips" class="px">0</b>
+      <span class="counter-unit px">paperclips</span>
+    </div>
+    <button id="clip" type="button" aria-label="Make a paperclip"></button>
+    <div id="floor" aria-hidden="true"></div>
+  </main>
+  <section id="shop" class="frame-window" aria-label="Clip shop" hidden>
+    <div class="titlebar">
+      <div class="titlebar-text">Clip Shop.exe</div>
+      <button type="button" class="icon-btn" data-act="pause" aria-label="Pause"><span class="x-glyph"></span></button>
+    </div>
+    <div class="win-body">
+      <div class="marquee">
+        <div class="marquee-lights" aria-hidden="true"></div>
+        <div class="marquee-title px">CLIP SHOP</div>
+      </div>
+      <div class="amounts" role="group" aria-label="How many to buy">
+        <span class="hint">Buy</span>
+        <button type="button" class="btn btn-sm is-pressed" data-amount="1">×1</button>
+        <button type="button" class="btn btn-sm" data-amount="10">×10</button>
+        <button type="button" class="btn btn-sm" data-amount="max">Max</button>
+      </div>
+      <ul id="goods"></ul>
+      <div class="goal">
+        <div class="goal-text"><span id="goal-label"></span><span id="goal-reward" class="px"></span></div>
+        <div class="goal-well"><i id="goal-fill"></i></div>
+      </div>
+      <div class="wallet"><span id="wallet" class="px"></span><span class="hint">Spend credits in the Wardrobe</span></div>
+    </div>
+  </section>
+  <div id="fx"></div>
+  <div id="clippy"><div class="bob"></div></div>
+  <div id="bubble" class="px" role="status" aria-live="polite"></div>
+  <div id="hud" hidden>
+    <div class="hud-cell"><span class="hud-label">MADE</span><b id="made" class="px">0</b></div>
+    <div class="hud-cell"><span class="hud-label">PER SEC</span><b id="rate" class="px">0</b></div>
+    <span class="hud-hint px">Esc to pause</span>
+  </div>
+  <div id="dialog" class="frame-window" role="dialog" aria-modal="true" hidden></div>
+  <script type="module" src="clicker.js"></script>
+</body>
+</html>

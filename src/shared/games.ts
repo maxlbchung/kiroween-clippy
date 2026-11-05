@@ -1,7 +1,7 @@
 // Arcade game ids, shared by the main process and the renderers.
 
 /** Every full-screen game. Each one's page is `renderer/games/<id>/index.html`. */
-export const GAME_IDS = ["dodge", "quiz", "seek"] as const;
+export const GAME_IDS = ["dodge", "quiz", "seek", "clicker"] as const;
 
 export type GameId = (typeof GAME_IDS)[number];
 
