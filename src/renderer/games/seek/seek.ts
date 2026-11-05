@@ -11,8 +11,6 @@ import { $, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
 	flyTo,
-	pick,
-	rand,
 	type Script,
 	stepScripts,
 	type Vec,
@@ -34,6 +32,7 @@ import {
 	start,
 	whoosh,
 } from "../overlay.js";
+import { pick, type Rng, rand, seeded } from "../random.js";
 import { formatScore } from "../score.js";
 import { closePopup, DECOYS, type DecoyKind, draftPile } from "./catalog.js";
 import {
@@ -43,14 +42,11 @@ import {
 	HIDERS,
 	layoutPile,
 	type Pose,
-	pickOne,
 	pileFull,
 	placeDialog,
 	playArea,
 	type Rect,
-	type Rng,
 	type Spot,
-	seeded,
 } from "./layout.js";
 import {
 	clippyInBox,
@@ -440,7 +436,7 @@ function buildRound(): Round {
 	const spots = chooseSpots(models, a, rng);
 	const kinds = Object.keys(DECOYS) as DecoyKind[];
 	const deskDecoys = Array.from({ length: 2 + Math.floor(rng() * 2) }, () =>
-		pickOne(rng, kinds),
+		pick(kinds, rng),
 	);
 	r.decoys = chooseDecoys(
 		models,

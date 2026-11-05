@@ -14,15 +14,7 @@ import {
 	TIME_LIMIT,
 	TOPIC_LABELS,
 } from "../dist/renderer/games/quiz/trivia.js";
-
-/** Deterministic stand-in for Math.random. */
-function seeded(seed) {
-	let s = seed >>> 0;
-	return () => {
-		s = (s * 1664525 + 1013904223) >>> 0;
-		return s / 2 ** 32;
-	};
-}
+import { seeded } from "../dist/renderer/games/random.js";
 
 test("the bank has enough questions for varied rounds", () => {
 	assert.ok(QUESTIONS.length >= 4 * ROUND_SIZE);

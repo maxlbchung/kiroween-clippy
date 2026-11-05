@@ -5,13 +5,12 @@ import {
 	angleDiff,
 	clamp,
 	easeOut,
-	pick,
-	rand,
 	type Script,
 	tween,
 	type Vec,
 	wait,
 } from "../motion.js";
+import { pick, rand } from "../random.js";
 import {
 	angleTo,
 	type Beam,

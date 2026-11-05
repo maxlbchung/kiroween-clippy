@@ -2,10 +2,10 @@
 // hide. Pure geometry with no DOM access, so it runs in unit tests. Rects are
 // CSS px in overlay coordinates unless a type says otherwise.
 
+import { type Rng, rand, shuffle } from "../random.js";
+
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Size = { w: number; h: number };
-/** Returns a float in [0, 1), like `Math.random`. */
-export type Rng = () => number;
 
 /**
  * How a hiding box shows Clippy. Peeking poses cut him off at one edge of the
@@ -29,34 +29,6 @@ export const DESK_SIZE: Record<"whole" | "lie", Size> = {
 	whole: { w: 28, h: 66 },
 	lie: { w: 66, h: 28 },
 };
-
-/** Seeded generator for repeatable layouts (mulberry32). */
-export function seeded(seed: number): Rng {
-	let a = seed >>> 0;
-	return () => {
-		a = (a + 0x6d2b79f5) >>> 0;
-		let t = a;
-		t = Math.imul(t ^ (t >>> 15), t | 1);
-		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-	};
-}
-
-export const between = (rng: Rng, a: number, b: number) => a + rng() * (b - a);
-
-export function pickOne<T>(rng: Rng, xs: readonly T[]): T {
-	return xs[Math.floor(rng() * xs.length)];
-}
-
-/** Returns a shuffled copy of `xs`. */
-export function shuffle<T>(rng: Rng, xs: readonly T[]): T[] {
-	const out = [...xs];
-	for (let i = out.length - 1; i > 0; i--) {
-		const j = Math.floor(rng() * (i + 1));
-		[out[i], out[j]] = [out[j], out[i]];
-	}
-	return out;
-}
 
 /** The part of the screen that windows and hiding spots may use. */
 export function playArea(view: Size): Rect {
@@ -364,7 +336,6 @@ export function chooseSpots(
 	desk = Math.min(desk, count - 1);
 
 	const slots = shuffle(
-		rng,
 		wins.flatMap((w, i) =>
 			w.slots.flatMap((s, j) =>
 				slotReachable(w, s, area)
@@ -372,6 +343,7 @@ export function chooseSpots(
 					: [],
 			),
 		),
+		rng,
 	);
 	for (const strict of [true, false]) {
 		for (const s of slots) {
@@ -406,10 +378,10 @@ export function chooseSpots(
 			kind: "desk",
 			rect,
 			pose,
-			rot: Math.round(between(rng, -18, 18)),
+			rot: Math.round(rand(-18, 18, rng)),
 		});
 	}
-	return shuffle(rng, out);
+	return shuffle(out, rng);
 }
 
 /**
@@ -428,7 +400,6 @@ export function chooseDecoys(
 		taken.flatMap((s) => (s.kind === "slot" ? [`${s.win}:${s.slot}`] : [])),
 	);
 	const out: Spot[] = shuffle(
-		rng,
 		wins.flatMap((w, i) =>
 			w.slots.flatMap((s, j) =>
 				slotReachable(w, s, area) && !used.has(`${i}:${j}`)
@@ -436,6 +407,7 @@ export function chooseDecoys(
 					: [],
 			),
 		),
+		rng,
 	).slice(0, slotCount);
 	const avoid = taken.flatMap((s) => (s.kind === "desk" ? [s.rect] : []));
 	for (const size of sizes) {
@@ -446,7 +418,7 @@ export function chooseDecoys(
 			kind: "desk",
 			rect,
 			pose: "whole",
-			rot: Math.round(between(rng, -25, 25)),
+			rot: Math.round(rand(-25, 25, rng)),
 		});
 	}
 	return out;

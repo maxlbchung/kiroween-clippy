@@ -23,13 +23,13 @@ import {
 } from "../common/ui.js";
 import {
 	clamp,
-	pick,
 	type Script,
 	type Steerable,
 	steer,
 	type Vec,
 	wait,
 } from "./motion.js";
+import { pick } from "./random.js";
 import { formatScore, loadBest, saveBest } from "./score.js";
 
 /** Clippy's body centre inside his SVG box, at scale 1. */

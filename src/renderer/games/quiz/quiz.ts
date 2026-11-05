@@ -7,7 +7,6 @@ import { $, $$, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
 	flyTo,
-	pick,
 	type Script,
 	stepScripts,
 	tween,
@@ -29,6 +28,7 @@ import {
 	start,
 	whoosh,
 } from "../overlay.js";
+import { pick } from "../random.js";
 import { formatScore } from "../score.js";
 import { QUESTIONS } from "./questions.js";
 import {

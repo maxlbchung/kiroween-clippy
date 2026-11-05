@@ -2,15 +2,7 @@
 // owns the overlay page: input, game states, HUD, dialogs and sound.
 
 import { $, reducedMotion, sfx, tone } from "../../common/ui.js";
-import {
-	flyTo,
-	pick,
-	rand,
-	type Script,
-	stepScripts,
-	type Vec,
-	wait,
-} from "../motion.js";
+import { flyTo, type Script, stepScripts, type Vec, wait } from "../motion.js";
 import {
 	Bubble,
 	countdown,
@@ -27,6 +19,7 @@ import {
 	start,
 	whoosh,
 } from "../overlay.js";
+import { pick, rand } from "../random.js";
 import { formatScore } from "../score.js";
 import { director } from "./attacks.js";
 import { World } from "./engine.js";

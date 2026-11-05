@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { seeded } from "../dist/renderer/games/random.js";
 import {
 	chooseDecoys,
 	chooseSpots,
@@ -16,7 +17,6 @@ import {
 	placeDialog,
 	playArea,
 	poseFrame,
-	seeded,
 	slotReachable,
 	spotRect,
 } from "../dist/renderer/games/seek/layout.js";

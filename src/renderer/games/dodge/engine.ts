@@ -6,14 +6,13 @@ import { esc } from "../../common/ui.js";
 import {
 	clamp,
 	easeOut,
-	pick,
-	rand,
 	type Script,
 	smooth,
 	steer,
 	stepScripts,
 	type Vec,
 } from "../motion.js";
+import { pick, rand } from "../random.js";
 
 /** Radius of the cursor's hitbox around its hotspot. */
 export const HIT_R = 4;

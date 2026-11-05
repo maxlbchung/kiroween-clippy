@@ -6,9 +6,6 @@ export type Vec = { x: number; y: number };
 /** A coroutine resumed once per frame with the frame's delta time. */
 export type Script = Generator<void, void, number>;
 
-export const rand = (a: number, b: number) => a + Math.random() * (b - a);
-export const pick = <T>(xs: ArrayLike<T>): T =>
-	xs[Math.floor(Math.random() * xs.length)];
 export const clamp = (v: number, a: number, b: number) =>
 	Math.max(a, Math.min(b, v));
 export const lerp = (a: number, b: number, k: number) => a + (b - a) * k;

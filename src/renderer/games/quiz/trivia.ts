@@ -1,6 +1,8 @@
 // AI Trivia rules: picking a round, shuffling answers and scoring. Pure, with
 // no DOM access, so the game page and the unit tests share it.
 
+import { type Rng, shuffle } from "../random.js";
+
 export type Topic = "history" | "concepts" | "scifi" | "clippy";
 
 export type Question = {
@@ -15,9 +17,6 @@ export type Question = {
 	/** Shown after the question is answered. */
 	fact: string;
 };
-
-/** Returns a number in [0, 1), like `Math.random`. */
-export type Random = () => number;
 
 /** Questions per round. */
 export const ROUND_SIZE = 10;
@@ -41,21 +40,11 @@ export const TOPIC_LABELS: Record<Topic, string> = {
 	clippy: "Clippy lore",
 };
 
-/** Returns a shuffled copy of `items`. */
-export function shuffle<T>(items: readonly T[], random: Random = Math.random) {
-	const out = [...items];
-	for (let i = out.length - 1; i > 0; i--) {
-		const j = Math.floor(random() * (i + 1));
-		[out[i], out[j]] = [out[j], out[i]];
-	}
-	return out;
-}
-
 /** Picks `size` distinct questions from `bank`, or the whole bank if it is smaller. */
 export function pickRound(
 	bank: readonly Question[],
 	size = ROUND_SIZE,
-	random: Random = Math.random,
+	random: Rng = Math.random,
 ) {
 	return shuffle(bank, random).slice(0, size);
 }
@@ -63,7 +52,7 @@ export function pickRound(
 /** Returns a copy of `question` with its options shuffled and `answer` updated to match. */
 export function shuffleOptions(
 	question: Question,
-	random: Random = Math.random,
+	random: Rng = Math.random,
 ): Question {
 	const order = shuffle([0, 1, 2, 3] as const, random);
 	return {
@@ -77,13 +66,13 @@ export function shuffleOptions(
 export function newRound(
 	bank: readonly Question[],
 	size = ROUND_SIZE,
-	random: Random = Math.random,
+	random: Rng = Math.random,
 ) {
 	return pickRound(bank, size, random).map((q) => shuffleOptions(q, random));
 }
 
 /** The 50:50 lifeline: indices of two wrong options to remove, in ascending order. */
-export function fiftyFifty(question: Question, random: Random = Math.random) {
+export function fiftyFifty(question: Question, random: Rng = Math.random) {
 	const wrong = [0, 1, 2, 3].filter((i) => i !== question.answer);
 	return shuffle(wrong, random)
 		.slice(0, 2)

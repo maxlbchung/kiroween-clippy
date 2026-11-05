@@ -5,14 +5,8 @@
 // with Clippies or decoys. Content marked `data-decoy` is a decoy as it is.
 
 import { esc } from "../../common/ui.js";
-import {
-	between,
-	type Pose,
-	pickOne,
-	type Rng,
-	type Size,
-	shuffle,
-} from "./layout.js";
+import { pick, type Rng, rand, shuffle } from "../random.js";
+import type { Pose, Size } from "./layout.js";
 
 export type Draft = {
 	kind: string;
@@ -61,10 +55,9 @@ const status = (...cells: string[]) =>
 	`<div class="status">${cells.map((c) => `<span>${esc(c)}</span>`).join("")}</div>`;
 
 const pickN = <T>(rng: Rng, xs: readonly T[], n: number) =>
-	shuffle(rng, xs).slice(0, n);
+	shuffle(xs, rng).slice(0, n);
 
-const int = (rng: Rng, a: number, b: number) =>
-	Math.floor(between(rng, a, b + 1));
+const int = (rng: Rng, a: number, b: number) => Math.floor(rand(a, b + 1, rng));
 
 const HEADLINES = [
 	"Local paper clip refuses to retire, demands corner office",
@@ -97,20 +90,20 @@ type Site = { title: string; url: string; cls: string; html: string };
 
 function newsSite(rng: Rng): Site {
 	const [lead, ...more] = pickN(rng, HEADLINES, 5);
-	const photo = pickOne(rng, ["haunted", "pumpkins", "cat", "beach"]);
+	const photo = pick(["haunted", "pumpkins", "cat", "beach"], rng);
 	return {
 		title: "The Daily Byte",
 		url: "http://www.dailybyte.com/news/today.html",
 		cls: "site-news",
 		html: `
       <div class="mast"><b>The Daily Byte</b><span>Saturday, Oct 31, 1998 &middot; Late Edition</span></div>
-      <div class="ticker"><span>BREAKING: ${esc(pickOne(rng, TICKER))} &bull; ${esc(pickOne(rng, TICKER))} &bull; Weather: partly clippy</span></div>
+      <div class="ticker"><span>BREAKING: ${esc(pick(TICKER, rng))} &bull; ${esc(pick(TICKER, rng))} &bull; Weather: partly clippy</span></div>
       <div class="cols">
         <div class="main">
           <h1>${esc(lead)}</h1>
           <div class="photo">${art(photo)}</div>
           <p class="cap">Our photographer, moments before the pop-up.</p>
-          <p>${esc(pickOne(rng, LOREM))} ${esc(pickOne(rng, LOREM))}</p>
+          <p>${esc(pick(LOREM, rng))} ${esc(pick(LOREM, rng))}</p>
         </div>
         <div class="side">
           <div class="adlabel">ADVERTISEMENT</div>
@@ -121,7 +114,7 @@ function newsSite(rng: Rng): Site {
       <h2>More stories</h2>
       <ul class="more">${more.map((h) => `<li><u>${esc(h)}</u></li>`).join("")}</ul>
       <div class="promo"><span>Get The Daily Byte on your pager!</span>${slot("up", `right:${int(rng, 12, 120)}px;top:-29px;width:28px;height:28px`)}</div>
-      <p>${esc(pickOne(rng, LOREM))}</p>
+      <p>${esc(pick(LOREM, rng))}</p>
       <div class="foot">&copy; 1998 The Daily Byte. Best viewed in 800&times;600.</div>`,
 	};
 }
@@ -169,7 +162,7 @@ const RESULTS = [
 const LOGO = ["#2f7cf6", "#e5484d", "#ffb224", "#2f7cf6", "#30a46c", "#e5484d"];
 
 function searchSite(rng: Rng): Site {
-	const q = pickOne(rng, QUERIES);
+	const q = pick(QUERIES, rng);
 	const results = pickN(rng, RESULTS, 5);
 	return {
 		title: `Fetch! Search: ${q}`,
@@ -246,7 +239,7 @@ const PRODUCTS: [string, string, string, DecoyKind?][] = [
 ];
 
 function shopSite(rng: Rng): Site {
-	const items = [...shuffle(rng, PRODUCTS), ...shuffle(rng, PRODUCTS)].slice(
+	const items = [...shuffle(PRODUCTS, rng), ...shuffle(PRODUCTS, rng)].slice(
 		0,
 		9,
 	);
@@ -280,11 +273,11 @@ function wikiSite(rng: Rng): Site {
       <p>A <b>paper clip</b> is a device used to hold sheets of paper together, usually made of steel wire bent into a looped shape. Some paper clips have been reported to blink.</p>
       <div class="toc"><b>Contents</b><span>1 History</span><span>2 Design</span><span>3 Hiding</span><span>4 See also</span></div>
       <h2>History</h2>
-      <p>${esc(pickOne(rng, LOREM))} ${esc(pickOne(rng, LOREM))}</p>
+      <p>${esc(pick(LOREM, rng))} ${esc(pick(LOREM, rng))}</p>
       <h2>Hiding</h2>
       <p>Paper clips are excellent at hide and seek. They are thin, shiny and very patient.</p>
       <h2>See also</h2>
-      <div class="gallery">${shuffle(rng, ["binder", "stapler", "pushpin", ""])
+      <div class="gallery">${shuffle(["binder", "stapler", "pushpin", ""], rng)
 				.map((name) =>
 					name
 						? `<span>${art(name, "", name as DecoyKind)}</span>`
@@ -317,7 +310,7 @@ const FRIEND_NAMES = [
 
 function socialSite(rng: Rng): Site {
 	const peek = int(rng, 0, 7);
-	const names = shuffle(rng, FRIEND_NAMES);
+	const names = shuffle(FRIEND_NAMES, rng);
 	return {
 		title: "MySpot - xX_Kiro_Xx's profile",
 		url: "http://www.myspot.com/xX_Kiro_Xx",
@@ -325,11 +318,11 @@ function socialSite(rng: Rng): Site {
 		html: `
       <div class="ptop"><b>MySpot</b><span>a place for friends</span></div>
       <div class="prow">
-        <div class="pic">${art(pickOne(rng, ["cat", "beach", "pumpkins"]))}</div>
+        <div class="pic">${art(pick(["cat", "beach", "pumpkins"], rng))}</div>
         <div class="who"><b>xX_Kiro_Xx</b><span>"hiding is my cardio"</span><span>Mood: sneaky</span><span class="online">ONLINE NOW!</span></div>
       </div>
       <h2>xX_Kiro_Xx's Top 8</h2>
-      <div class="top8">${shuffle(rng, FRIENDS)
+      <div class="top8">${shuffle(FRIENDS, rng)
 				.map(
 					(c, i) =>
 						`<span>${i === peek ? `<i class="face nophoto"></i>${slot("up", "left:9px;top:8px;width:30px;height:30px")}` : `<i class="face" style="background:${c}"></i>`}<b>${esc(names[i])}</b></span>`,
@@ -369,7 +362,7 @@ function forumSite(rng: Rng): Site {
       ${posts
 				.map(
 					([user, text], i) =>
-						`<div class="post"><div class="poster"><b>${esc(user)}</b><span class="av" style="background:${pickOne(rng, FRIENDS)}">${i === peek ? slot("up", "left:7px;top:4px;width:30px;height:30px") : ""}<i></i></span><small>Posts: ${int(rng, 3, 9999)}</small></div><div class="text">${esc(text)}<hr><small>~*~ Sent from my 486 ~*~</small></div></div>`,
+						`<div class="post"><div class="poster"><b>${esc(user)}</b><span class="av" style="background:${pick(FRIENDS, rng)}">${i === peek ? slot("up", "left:7px;top:4px;width:30px;height:30px") : ""}<i></i></span><small>Posts: ${int(rng, 3, 9999)}</small></div><div class="text">${esc(text)}<hr><small>~*~ Sent from my 486 ~*~</small></div></div>`,
 				)
 				.join("")}
       <div class="foot">Powered by phpBBQ &copy; 1998</div>`,
@@ -407,10 +400,10 @@ const SITES = [
 let siteDeck: typeof SITES = [];
 
 function browser(rng: Rng): Draft {
-	if (!siteDeck.length) siteDeck = shuffle(rng, SITES);
+	if (!siteDeck.length) siteDeck = shuffle(SITES, rng);
 	const site = siteDeck.pop()(rng);
-	const w = pickOne(rng, [440, 460, 480]);
-	const h = pickOne(rng, [340, 360, 380]);
+	const w = pick([440, 460, 480], rng);
+	const h = pick([340, 360, 380], rng);
 	return {
 		kind: "browser",
 		title: `${site.title} - Internet Exploder`,
@@ -429,8 +422,8 @@ function browser(rng: Rng): Draft {
 const PICTURES = ["cat", "hills", "beach", "pumpkins", "haunted"];
 
 function viewer(rng: Rng): Draft {
-	const pic = pickOne(rng, PICTURES);
-	const ext = pickOne(rng, ["bmp", "jpg", "gif"]);
+	const pic = pick(PICTURES, rng);
+	const ext = pick(["bmp", "jpg", "gif"], rng);
 	const slots = [
 		slot("up", `left:${int(rng, 10, 250)}px;top:-31px;width:30px;height:30px`),
 		slot(
@@ -509,13 +502,13 @@ const NOTES = [
 ];
 
 function notepad(rng: Rng): Draft {
-	const [name, text] = pickOne(rng, NOTES);
+	const [name, text] = pick(NOTES, rng);
 	return {
 		kind: "notepad",
 		title: `${name} - Notepad`,
 		icon: "ti-note",
-		w: pickOne(rng, [280, 300, 320]),
-		h: pickOne(rng, [200, 230]),
+		w: pick([280, 300, 320], rng),
+		h: pick([200, 230], rng),
 		cls: "k-notepad",
 		body: `${menu("File", "Edit", "Search", "Help")}<div class="paper">${esc(text)}<span class="caret"></span></div>`,
 	};
@@ -634,7 +627,7 @@ function calculator(rng: Rng): Draft {
 		cls: "k-calc",
 		body: `
       ${menu("Edit", "View", "Help")}
-      <div class="lcd">${pickOne(rng, ["3.1415926535", "0.", "1998.", "42.", "404.", "31.10"])}</div>
+      <div class="lcd">${pick(["3.1415926535", "0.", "1998.", "42.", "404.", "31.10"], rng)}</div>
       <div class="keys">${keys.map((k) => `<span class="btn btn-sm key${/[0-9.]/.test(k) && k.length === 1 ? " num" : ""}${/^M/.test(k) ? " mem" : ""}">${esc(k)}</span>`).join("")}</div>`,
 	};
 }
@@ -647,7 +640,7 @@ const SONGS = [
 ];
 
 function music(rng: Rng): Draft {
-	const song = pickOne(rng, SONGS);
+	const song = pick(SONGS, rng);
 	return {
 		kind: "music",
 		title: "ClipAmp",
@@ -725,7 +718,7 @@ function terminal(rng: Rng): Draft {
 		kind: "terminal",
 		title: "DOS Prompt",
 		icon: "ti-dos",
-		w: pickOne(rng, [380, 400]),
+		w: pick([380, 400], rng),
 		h: 240,
 		cls: "k-terminal",
 		body: `<div class="tty">${esc(DOS.slice(skip).join("\n"))}<span class="caret"></span></div>`,
@@ -779,7 +772,7 @@ export function messageBox(
 	rng: Rng,
 	spec?: [string, string, string, string[]],
 ): Draft {
-	const [icon, title, text, buttons] = spec ?? pickOne(rng, ERRORS);
+	const [icon, title, text, buttons] = spec ?? pick(ERRORS, rng);
 	return {
 		kind: "dialog",
 		title,
@@ -817,8 +810,8 @@ function solitaire(rng: Rng): Draft {
 		"K",
 	];
 	const card = () => {
-		const [s, c] = pickOne(rng, suits);
-		return `<span class="card ${c}"><b>${pickOne(rng, ranks)}</b>${s}</span>`;
+		const [s, c] = pick(suits, rng);
+		return `<span class="card ${c}"><b>${pick(ranks, rng)}</b>${s}</span>`;
 	};
 	const peek = int(rng, 0, 5);
 	const cols = Array.from({ length: 6 }, (_, i) => {
@@ -868,7 +861,7 @@ function minesweeper(rng: Rng): Draft {
 }
 
 function display(rng: Rng): Draft {
-	const pic = pickOne(rng, ["hills", "beach", "pumpkins"]);
+	const pic = pick(["hills", "beach", "pumpkins"], rng);
 	return {
 		kind: "display",
 		title: "Display Properties",
@@ -917,7 +910,7 @@ export function draftPile(rng: Rng, full: (drafts: Draft[]) => boolean) {
 		drafts.push(kind.make(rng));
 		count.set(kind.id, (count.get(kind.id) ?? 0) + 1);
 	};
-	for (const kind of shuffle(rng, KINDS)) {
+	for (const kind of shuffle(KINDS, rng)) {
 		if (full(drafts)) break;
 		add(kind);
 	}
@@ -935,7 +928,7 @@ export function draftPile(rng: Rng, full: (drafts: Draft[]) => boolean) {
 		}
 		add(kind);
 	}
-	return shuffle(rng, drafts);
+	return shuffle(drafts, rng);
 }
 
 /** A cheeky message box that appears when the player closes a window. */
@@ -981,7 +974,7 @@ export function closePopup(rng: Rng, depth: number): Draft {
 					["Yes", "No", "Maybe"],
 				],
 			];
-	const draft = messageBox(rng, pickOne(rng, lines));
+	const draft = messageBox(rng, pick(lines, rng));
 	draft.kind = "popup";
 	draft.icon = "ti-clippy";
 	return draft;
