@@ -650,40 +650,8 @@
 	height: 100%;
 	gap: 10px;
 }
-.marquee {
-	position: relative;
-	padding: 12px 10px 10px;
-	text-align: center;
-	color: #fff;
-	background: linear-gradient(#2a1458, #5a1f7c);
-	box-shadow: var(--bevel-in);
-	overflow: hidden;
-}
-.marquee-lights {
-	position: absolute;
-	inset: 3px;
-	pointer-events: none;
-	border: 5px dotted #ffd23f;
-	animation: chase 0.7s steps(1) infinite;
-}
-@keyframes chase {
-	50% {
-		border-color: #ff8a1f;
-	}
-}
 .marquee-title {
-	font-size: 24px;
 	font-weight: 700;
-	letter-spacing: 0.12em;
-	color: #ffd23f;
-	text-shadow:
-		2px 2px 0 #e5484d,
-		4px 4px 0 rgba(0, 0, 0, 0.4);
-}
-.marquee-sub {
-	font-size: 13px;
-	opacity: 0.85;
-	margin-top: 2px;
 }
 .carts {
 	display: grid;

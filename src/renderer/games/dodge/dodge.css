@@ -46,7 +46,7 @@
 	filter: drop-shadow(0 0 8px rgba(255, 59, 48, 0.8));
 }
 
-/* ---------- flying dialog boxes ---------- */
+/* Flying dialog boxes */
 .fw {
 	position: absolute;
 	left: 0;
