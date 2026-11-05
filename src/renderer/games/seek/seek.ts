@@ -5,32 +5,36 @@
 // Query parameters for previews and automated tests: `limit` sets the round
 // length in seconds and `seed` makes every round's layout repeatable.
 
-import type {
-	GameInit,
-	GameResult,
-	GameRoundReward,
-} from "../../../shared/types.js";
+import type { GameRoundReward } from "../../../shared/types.js";
 import { blink, clippyMarkup, createGaze } from "../../common/clippy.js";
-import { icon } from "../../common/icons.js";
-import {
-	$,
-	api,
-	applyPrefs,
-	esc,
-	reducedMotion,
-	sfx,
-	tone,
-} from "../../common/ui.js";
+import { $, api, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
+	flyTo,
 	pick,
 	rand,
 	type Script,
-	tween,
+	stepScripts,
 	type Vec,
 	wait,
 } from "../motion.js";
-import { formatScore, loadBest, saveBest } from "../score.js";
+import {
+	Actor,
+	Bubble,
+	countdown,
+	Dialog,
+	type DialogSpec,
+	flight,
+	loadFont,
+	openOverlay,
+	pauseDialog,
+	pauseWhenAway,
+	Rounds,
+	resultsDialog,
+	start,
+	whoosh,
+} from "../overlay.js";
+import { formatScore } from "../score.js";
 import { closePopup, DECOYS, type DecoyKind, draftPile } from "./catalog.js";
 import {
 	chooseDecoys,
@@ -87,7 +91,6 @@ type Hider = {
 };
 
 type Round = {
-	n: number;
 	rng: Rng;
 	wins: Win[];
 	hiders: Hider[];
@@ -101,13 +104,10 @@ type Round = {
 	top: Win | null;
 	z: number;
 	popups: number;
-	ended: boolean;
 };
 
 const desk = $("#desk");
 const fx = $("#fx");
-const clippyEl = $("#clippy");
-const bubble = $("#bubble");
 const blind = $("#blind");
 const hud = $("#hud");
 const headsEl = $("#heads");
@@ -115,41 +115,27 @@ const timeEl = $("#time");
 const scoreEl = $("#score");
 const hintBtn = $("#hint") as HTMLButtonElement;
 const countEl = $("#count");
-const dialog = $("#dialog");
 
 const params = new URLSearchParams(location.search);
 const limit = Number(params.get("limit")) || TIME_LIMIT;
 const seed = Number(params.get("seed")) || 0;
 
-const settings = await api.getSettings();
-applyPrefs(settings);
+const { settings, scale: s, home, cursor } = await openOverlay("seek");
 const costume = settings.costume;
-const init: GameInit = (await api.gameInit()) ?? {
-	id: "seek",
-	scale: 1,
-	home: {
-		x: window.innerWidth - 260,
-		y: window.innerHeight - 320,
-		width: 140,
-		height: 224,
-	},
-	cursor: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-};
-const s = init.scale;
-// Clippy's body centre inside his SVG box, at scale 1.
-const ANCHOR = { x: 70, y: 130 };
-const home: Vec = {
-	x: init.home.x + ANCHOR.x * s,
-	y: init.home.y + ANCHOR.y * s,
-};
-const cursor: Vec = { ...init.cursor };
-const actor = { x: home.x, y: home.y, mood: null as string | null };
 
-clippyEl.style.width = `${140 * s}px`;
-clippyEl.style.height = `${224 * s}px`;
-$(".bob", clippyEl).innerHTML = clippyMarkup({ uid: "seek", costume });
-const svg = $("svg", clippyEl);
-const gaze = createGaze(svg);
+const actor = new Actor($("#clippy"), {
+	uid: "seek",
+	costume,
+	scale: s,
+	at: home,
+});
+const bubble = new Bubble($("#bubble"), s);
+const dialog = new Dialog($("#dialog"), (act) => {
+	if (act === "resume") resume();
+	else if (act === "again") playAgain();
+	else if (act === "quit") quit();
+});
+const rounds = new Rounds("seek");
 
 headsEl.innerHTML = Array.from(
 	{ length: HIDERS },
@@ -162,11 +148,6 @@ hintBtn.textContent = `Hint -${HINT_COST}`;
 const sounds = {
 	spawn: (i: number) =>
 		tone(300 + (i % 14) * 45, { dur: 0.05, type: "triangle", gain: 0.025 }),
-	beep: () => tone(660, { dur: 0.09, gain: 0.04 }),
-	go: () => {
-		tone(880, { dur: 0.08, gain: 0.045 });
-		tone(1320, { at: 0.08, dur: 0.22, gain: 0.045 });
-	},
 	found: (n: number) => {
 		const k = 1 + (n - 1) * 0.125;
 		[523, 659, 784, 1047].forEach((f, i) => {
@@ -192,8 +173,6 @@ const sounds = {
 			slide: -600,
 		});
 	},
-	whoosh: () =>
-		tone(1300, { dur: 0.2, type: "triangle", gain: 0.035, slide: -1000 }),
 	popup: () => {
 		tone(784, { dur: 0.12, type: "triangle", gain: 0.045 });
 		tone(988, { at: 0.1, dur: 0.2, type: "triangle", gain: 0.045 });
@@ -211,11 +190,10 @@ const sounds = {
 let state: State = "intro";
 let scripts: Script[] = [];
 let round: Round | null = null;
-let rounds = 0;
-let best = loadBest("seek");
-let lastResult: GameResult | null = null;
-// Credits for the last finished round, resolved by the main process.
-let reward: Promise<GameRoundReward | null> = Promise.resolve(null);
+// Rounds played, which varies seeded layouts between rounds.
+let played = 0;
+// Makes every Clippy SVG id on the page unique.
+let uids = 0;
 let hintCooldown = 0;
 let lastTick = -1;
 
@@ -235,46 +213,17 @@ function run(script: Script) {
 	scripts.push(script);
 }
 
-let bubbleUntil = 0;
-function say(text: string, seconds = 1.6) {
-	bubble.textContent = text;
-	bubble.classList.add("show");
-	bubbleUntil = performance.now() + (seconds + text.length * 0.02) * 1000;
-}
-
 function showClippy(at?: Vec) {
 	if (at) {
 		actor.x = at.x;
 		actor.y = at.y;
 	}
-	clippyEl.hidden = false;
+	actor.el.hidden = false;
 }
 
 function hideClippy() {
-	clippyEl.hidden = true;
-	bubble.classList.remove("show");
-}
-
-function* flyTo(to: Vec, seconds: number): Script {
-	const from = { x: actor.x, y: actor.y };
-	yield* tween(seconds, (k) => {
-		actor.x = from.x + (to.x - from.x) * k;
-		actor.y = from.y + (to.y - from.y) * k;
-	});
-}
-
-function* countdown(steps: string[], each: number, small = false): Script {
-	countEl.classList.toggle("small", small);
-	for (let i = 0; i < steps.length; i++) {
-		countEl.textContent = steps[i];
-		countEl.classList.remove("pop");
-		void countEl.offsetWidth;
-		countEl.classList.add("pop");
-		(i === steps.length - 1 ? sounds.go : sounds.beep)();
-		yield* wait(each);
-	}
-	countEl.textContent = "";
-	countEl.classList.remove("pop", "small");
+	actor.el.hidden = true;
+	bubble.hide();
 }
 
 /** Runs `fn` once `seconds` of real time pass, unless the round changes first. */
@@ -421,7 +370,7 @@ function setShaded(w: Win, shaded: boolean) {
 }
 
 function hiderAt(spot: Spot, i: number, r: Round): Hider {
-	const uid = `h${r.n}-${i}-${Math.floor(rand(0, 1e6))}`;
+	const uid = `h${uids++}`;
 	const el = fillSpot(
 		desk,
 		r.wins,
@@ -453,8 +402,8 @@ function decoyFor(r: Round, pose: Pose): DecoyKind {
 }
 
 function buildRound(): Round {
-	rounds += 1;
-	const rng = seed ? seeded(seed + rounds) : Math.random;
+	played += 1;
+	const rng = seed ? seeded(seed + played) : Math.random;
 	const a = area();
 	const drafts = draftPile(rng, (d) =>
 		pileFull(
@@ -473,7 +422,6 @@ function buildRound(): Round {
 		measureWindow(el, drafts[i], rects[i], i + 1),
 	);
 	const r: Round = {
-		n: rounds,
 		rng,
 		wins,
 		hiders: [],
@@ -487,7 +435,6 @@ function buildRound(): Round {
 		top: null,
 		z: wins.length,
 		popups: 0,
-		ended: false,
 	};
 	const models = wins.map((w) => w.model);
 	const spots = chooseSpots(models, a, rng);
@@ -564,7 +511,7 @@ function* clearPile(): Script {
 	if (!r) return;
 	const to = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 	if (!reducedMotion()) {
-		sounds.whoosh();
+		whoosh();
 		for (const w of r.wins) {
 			if (w.model.closed) continue;
 			const rect = w.model.rect;
@@ -599,16 +546,11 @@ function* clearPile(): Script {
 	round = null;
 }
 
-function points() {
+/** The round's score so far, or its final score once `won`. */
+function points(won = false) {
 	const r = round;
 	if (!r) return 0;
-	return roundScore({
-		found: r.found,
-		misses: r.misses,
-		hints: r.hints,
-		timeLeft: limit - r.elapsed,
-		won: false,
-	});
+	return roundScore({ ...r, timeLeft: limit - r.elapsed, won });
 }
 
 const setText = (el: HTMLElement, text: string) => {
@@ -632,15 +574,9 @@ function updateHud() {
 		state !== "playing" || hintCooldown > 0 || !r || r.found >= HIDERS;
 }
 
-/** Ends the round and reports its score; later calls for the same round do nothing. */
+/** Reports the round's score; later calls for the same round do nothing. */
 function finishRound(score: number, time: number) {
-	const r = round;
-	if (!r || r.ended) return;
-	r.ended = true;
-	const record = saveBest("seek", score);
-	best = loadBest("seek");
-	lastResult = { score, time: Math.round(time * 10) / 10, record };
-	reward = api.gameRound(lastResult).catch(() => null);
+	rounds.report(score, Math.round(time * 10) / 10);
 }
 
 function* intro(first: boolean): Script {
@@ -648,9 +584,9 @@ function* intro(first: boolean): Script {
 	document.body.classList.add("active");
 	showClippy();
 	actor.mood = "happy";
-	if (first) say("It looks like you want to play hide and seek!", 1.4);
+	if (first) bubble.say("It looks like you want to play hide and seek!", 1.4);
 	else
-		say(
+		bubble.say(
 			pick([
 				"Again? I'll hide better this time.",
 				"Round two! No peeking.",
@@ -660,24 +596,26 @@ function* intro(first: boolean): Script {
 		);
 	yield* wait(first ? 0.8 : 0.3);
 	yield* flyTo(
+		actor,
 		{ x: window.innerWidth / 2, y: window.innerHeight / 2 + 40 * s },
-		0.8,
+		flight(0.8),
 	);
 	hud.hidden = false;
 	round = buildRound();
+	rounds.begin();
 	updateHud();
 	actor.mood = "talking";
 	yield* spawnPile(round);
 	actor.mood = null;
-	say("Count to three... no peeking!", 1.2);
+	bubble.say("Count to three... no peeking!", 1.2);
 	yield* wait(1.7);
 	blind.classList.add("on");
 	yield* wait(reducedMotion() ? 0.05 : 0.4);
 	hideClippy();
 	for (const h of round.hiders) h.el.classList.remove("lurk");
 	state = "countdown";
-	yield* countdown(["1", "2", "3"], 0.7);
-	yield* countdown(["READY OR NOT!"], 0.9, true);
+	yield* countdown(countEl, ["1", "2", "3"], 0.7);
+	yield* countdown(countEl, ["READY OR NOT!"], 0.9, "small");
 	blind.classList.remove("on");
 	state = "playing";
 	updateHud();
@@ -692,26 +630,16 @@ function pause() {
 	blind.classList.remove("on");
 	sfx.close();
 	updateHud();
-	showDialog({
-		title: "Paused",
-		body: `
-      <div class="dlg-head">
-        <span class="fw-icon ask"></span>
-        <div>
-          <p class="dlg-title px">No peeking!</p>
-          <p class="hint">The windows are hidden while the game is paused.</p>
-        </div>
-      </div>`,
-		buttons: [
-			{ label: "Resume", act: "resume", primary: true },
-			{ label: "Quit", act: "quit" },
-		],
-		onClose: "resume",
-	});
+	showDialog(
+		pauseDialog(
+			"No peeking!",
+			"The windows are hidden while the game is paused.",
+		),
+	);
 }
 
 function resume() {
-	hideDialog();
+	dialog.hide();
 	document.body.classList.remove("paused");
 	for (const h of round?.hiders ?? []) h.el.classList.remove("lurk");
 	hideClippy();
@@ -719,7 +647,7 @@ function resume() {
 	blind.classList.add("on");
 	run(
 		(function* (): Script {
-			yield* countdown(["READY", "GO!"], 0.5);
+			yield* countdown(countEl, ["READY", "GO!"], 0.5);
 			blind.classList.remove("on");
 			state = "playing";
 			updateHud();
@@ -753,7 +681,7 @@ function jumpOut(at: Vec, slot: number) {
 	el.className = "jumper mood-hover";
 	el.style.width = `${w}px`;
 	el.style.height = `${h}px`;
-	el.innerHTML = clippyMarkup({ uid: `j${rounds}-${slot}`, costume });
+	el.innerHTML = clippyMarkup({ uid: `j${uids++}`, costume });
 	fx.appendChild(el);
 	const top = clamp(at.y - h / 2 - 40, 8, window.innerHeight - h - 8);
 	const x = clamp(at.x - w / 2, 8, window.innerWidth - w - 8);
@@ -852,31 +780,21 @@ function stray(at: Vec) {
 function win() {
 	const r = round;
 	state = "ending";
-	const timeLeft = limit - r.elapsed;
-	finishRound(
-		roundScore({
-			found: r.found,
-			misses: r.misses,
-			hints: r.hints,
-			timeLeft,
-			won: true,
-		}),
-		r.elapsed,
-	);
+	finishRound(points(true), r.elapsed);
 	updateHud();
 	run(
 		(function* (): Script {
 			yield* wait(reducedMotion() ? 0.3 : 1.8);
 			showClippy({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 			actor.mood = "hover";
-			clippyEl.animate(
+			actor.el.animate(
 				[
 					{ opacity: 0, scale: "0.4" },
 					{ opacity: 1, scale: "1" },
 				],
 				{ duration: 300, easing: "cubic-bezier(.3,1.5,.5,1)" },
 			);
-			say(
+			bubble.say(
 				pick([
 					"You found all three of us!",
 					"Ta-da! We give up!",
@@ -887,7 +805,7 @@ function win() {
 			sounds.win();
 			yield* wait(1.3);
 			state = "over";
-			const b = clippyEl.getBoundingClientRect();
+			const b = actor.el.getBoundingClientRect();
 			// Keeps the dialog off Clippy and his speech bubble.
 			showResult(true, [
 				{ x: b.left, y: b.top - 70, w: b.width, h: b.height + 70 },
@@ -941,17 +859,8 @@ function reveal(r: Round) {
 function timeUp() {
 	const r = round;
 	state = "ending";
-	finishRound(
-		roundScore({
-			found: r.found,
-			misses: r.misses,
-			hints: r.hints,
-			timeLeft: 0,
-			won: false,
-		}),
-		limit,
-	);
 	r.elapsed = limit;
+	finishRound(points(), limit);
 	updateHud();
 	sounds.timeUp();
 	countEl.classList.add("small");
@@ -972,64 +881,37 @@ function timeUp() {
 }
 
 function showResult(won: boolean, avoid: Rect[]) {
-	const res = lastResult;
+	const res = rounds.last;
 	const r = round;
 	sfx.open();
-	const stats = `
-      <dl class="go-stats">
-        <dt>Found</dt><dd class="px">${r.found} / ${HIDERS}</dd>
-        <dt>Time</dt><dd class="px">${res.time.toFixed(1)} s</dd>
-        <dt>Misses</dt><dd class="px">${r.misses}</dd>
-        <dt>Hints</dt><dd class="px">${r.hints}</dd>
-        <dt>Best</dt><dd class="px">${formatScore(best)}</dd>
-      </dl>`;
 	showDialog(
-		{
+		resultsDialog({
 			title: won ? "Found Them All" : "Time's Up",
-			body: `
-      <div class="dlg-head">
-        <span class="fw-icon ${won ? "info" : "warn"}"></span>
-        <div>
-          <p class="dlg-title px">${won ? "You found all three of us!" : "Time's up! We were right there."}</p>
-          <p class="hint">${won ? "Want to play again? I know better spots." : "Would you like to try again?"}</p>
-        </div>
-      </div>
-      <div class="go-score">
-        <span class="label">Score</span>
-        <b class="px">${formatScore(res.score)}</b>
-        ${res.record ? '<span class="go-new px">NEW BEST!</span>' : ""}
-      </div>
-      ${stats}
-      <div class="go-credits">
-        ${icon("coin", 24)}
-        <b class="px" data-earned>+…</b>
-        <span class="hint" data-wallet>Counting credits…</span>
-      </div>`,
-			buttons: [
-				{ label: "Play again", act: "again", primary: true },
-				{ label: "Quit", act: "quit" },
+			glyph: won ? "info" : "warn",
+			heading: won
+				? "You found all three of us!"
+				: "Time's up! We were right there.",
+			hint: won
+				? "Want to play again? I know better spots."
+				: "Would you like to try again?",
+			result: res,
+			stats: [
+				["Found", `${r.found} / ${HIDERS}`],
+				["Time", `${res.time.toFixed(1)} s`],
+				["Misses", r.misses],
+				["Hints", r.hints],
+				["Best", formatScore(rounds.best)],
 			],
-			onClose: "quit",
-		},
+		}),
 		avoid,
+		rounds.reward,
 	);
-	const shown = dialog.firstElementChild;
-	reward.then((rw) => {
-		if (dialog.firstElementChild !== shown) return;
-		const earned = dialog.querySelector("[data-earned]");
-		const wallet = dialog.querySelector("[data-wallet]");
-		if (!earned || !wallet) return;
-		earned.textContent = `+${rw?.earned ?? 0} credits`;
-		wallet.textContent = rw
-			? `${rw.credits} to spend in the Wardrobe`
-			: "Credits are unavailable right now.";
-	});
 }
 
 function playAgain() {
-	hideDialog();
+	dialog.hide();
 	state = "intro";
-	if (clippyEl.hidden)
+	if (actor.el.hidden)
 		showClippy({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 	run(
 		(function* (): Script {
@@ -1042,13 +924,12 @@ function playAgain() {
 function quit() {
 	if (state === "leaving") return;
 	if (state === "playing" || state === "paused" || state === "countdown") {
-		const score = points();
-		if (score > 0) finishRound(score, round?.elapsed ?? 0);
+		rounds.abandon(points(), round?.elapsed ?? 0);
 	}
-	const comeOut = clippyEl.hidden;
+	const comeOut = actor.el.hidden;
 	state = "leaving";
 	scripts = [];
-	hideDialog();
+	dialog.hide();
 	hud.hidden = true;
 	countEl.textContent = "";
 	blind.classList.remove("on");
@@ -1060,16 +941,16 @@ function quit() {
 			if (comeOut) {
 				showClippy({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 				actor.mood = "happy";
-				say(
+				bubble.say(
 					pick(["Fine, I'll come out.", "Olly olly oxen free!", "Here I am!"]),
 					0.8,
 				);
 				yield* wait(reducedMotion() ? 0.2 : 0.9);
 			}
 			actor.mood = null;
-			yield* flyTo(home, reducedMotion() ? 0.01 : 0.6);
+			yield* flyTo(actor, home, flight(0.6));
 			yield* wait(0.15);
-			api.exitGame(lastResult);
+			api.exitGame(rounds.last);
 		})(),
 	);
 }
@@ -1123,7 +1004,7 @@ function closeWindow(w: Win) {
 		);
 		if (!spot) continue;
 		r.hiders[i] = hiderAt(spot, i, r);
-		sounds.whoosh();
+		whoosh();
 		quip(
 			pick([
 				"Hey! I was hiding there!",
@@ -1217,54 +1098,20 @@ function hint() {
 	updateHud();
 }
 
-type DialogSpec = {
-	title: string;
-	body: string;
-	buttons: { label: string; act: string; primary?: boolean }[];
-	onClose: string;
-};
-
-function showDialog(spec: DialogSpec, avoid: Rect[] = []) {
-	dialog.innerHTML = `
-    <div class="titlebar">
-      <div class="titlebar-text">${esc(spec.title)}</div>
-      <button class="icon-btn" data-act="${esc(spec.onClose)}" aria-label="Close"><span class="x-glyph"></span></button>
-    </div>
-    <div class="win-body">
-      ${spec.body}
-      <div class="dlg-btns">
-        ${spec.buttons.map((b) => `<button class="btn${b.primary ? " btn-primary" : ""}" data-act="${esc(b.act)}">${esc(b.label)}</button>`).join("")}
-      </div>
-    </div>`;
-	dialog.hidden = false;
-	const at = placeDialog(
-		{ w: dialog.offsetWidth, h: dialog.offsetHeight },
-		view(),
-		avoid,
-	);
-	dialog.style.setProperty("--stage-x", `${at.x + at.w / 2}px`);
-	dialog.style.setProperty("--stage-y", `${at.y + at.h / 2}px`);
-	dialog.classList.remove("entered");
-	void dialog.offsetWidth;
-	dialog.classList.add("entered");
-	dialog.querySelector<HTMLElement>(".btn-primary")?.focus();
+/** Shows `spec` where it covers the least of `avoid`. */
+function showDialog(
+	spec: DialogSpec,
+	avoid: Rect[] = [],
+	reward?: Promise<GameRoundReward | null>,
+) {
+	dialog.show(spec, {
+		place: (size) => {
+			const at = placeDialog(size, view(), avoid);
+			return { x: at.x + at.w / 2, y: at.y + at.h / 2 };
+		},
+		reward,
+	});
 }
-
-function hideDialog() {
-	dialog.hidden = true;
-	dialog.innerHTML = "";
-}
-
-dialog.addEventListener("click", (e) => {
-	const target = e.target;
-	if (!(target instanceof Element)) return;
-	const act = target.closest<HTMLElement>("[data-act]")?.dataset.act;
-	if (!act) return;
-	sfx.select();
-	if (act === "resume") resume();
-	else if (act === "again") playAgain();
-	else if (act === "quit") quit();
-});
 
 hintBtn.addEventListener("click", hint);
 
@@ -1308,8 +1155,6 @@ desk.addEventListener("pointerdown", (e) => {
 });
 
 window.addEventListener("pointermove", (e) => {
-	cursor.x = e.clientX;
-	cursor.y = e.clientY;
 	if (press && Math.hypot(e.clientX - press.at.x, e.clientY - press.at.y) > 5)
 		press.moved = true;
 	if (drag && state === "playing") {
@@ -1372,9 +1217,7 @@ function click(p: Press, at: Vec) {
 	stray(at);
 }
 
-// The cursor left the overlay (another display) or the window lost focus.
-document.documentElement.addEventListener("mouseleave", pause);
-window.addEventListener("blur", pause);
+pauseWhenAway(pause);
 window.addEventListener("keydown", (e) => {
 	if (e.key !== "Escape") return;
 	e.preventDefault();
@@ -1386,18 +1229,9 @@ window.addEventListener("keydown", (e) => {
 });
 
 function render(now: number) {
-	clippyEl.style.transform = `translate(${(actor.x - ANCHOR.x * s).toFixed(1)}px, ${(actor.y - ANCHOR.y * s).toFixed(1)}px)`;
-	const cls = actor.mood ? `mood-${actor.mood}` : "";
-	if (clippyEl.className !== cls) clippyEl.className = cls;
-	if (now > bubbleUntil || clippyEl.hidden) bubble.classList.remove("show");
-	if (bubble.classList.contains("show")) {
-		const bw = bubble.offsetWidth;
-		const bh = bubble.offsetHeight;
-		const bx = clamp(actor.x - bw / 2, 8, window.innerWidth - bw - 8);
-		let by = actor.y - 138 * s - bh;
-		if (by < 8) by = actor.y + 110 * s;
-		bubble.style.transform = `translate(${bx.toFixed(0)}px, ${by.toFixed(0)}px)`;
-	}
+	actor.render();
+	if (actor.el.hidden) bubble.hide();
+	bubble.update(now, actor);
 }
 
 function updateHiders(now: number, dt: number) {
@@ -1420,11 +1254,7 @@ function updateHiders(now: number, dt: number) {
 	}
 }
 
-let last = performance.now();
-let nextBlink = last + 2500;
-function frame(now: number) {
-	const dt = Math.min(1 / 30, Math.max(0, (now - last) / 1000));
-	last = now;
+function frame(dt: number, now: number) {
 	if (state === "playing" && round) {
 		round.elapsed += dt;
 		hintCooldown = Math.max(0, hintCooldown - dt);
@@ -1437,37 +1267,13 @@ function frame(now: number) {
 		if (left <= 0) timeUp();
 		updateHud();
 	}
-	if (state !== "paused") {
-		for (let i = 0; i < scripts.length; i++) {
-			if (scripts[i].next(dt).done) {
-				scripts.splice(i, 1);
-				i -= 1;
-			}
-		}
-	}
+	if (state !== "paused") stepScripts(scripts, dt);
 	updateHiders(now, dt);
-	if (!clippyEl.hidden) {
-		gaze.lookAt(cursor.x, cursor.y);
-		gaze.tick(dt);
-		if (now > nextBlink) {
-			if (actor.mood !== "happy") blink(svg);
-			nextBlink = now + 2000 + Math.random() * 3500;
-		}
-	}
+	actor.update(dt, now, cursor);
 	render(now);
-	requestAnimationFrame(frame);
 }
 
-try {
-	await document.fonts.load('16px "Pixelify Sans"');
-} catch {
-	/* text falls back to the next font */
-}
+await loadFont();
 render(performance.now());
 updateHud();
-api.gameReady();
-requestAnimationFrame((now) => {
-	last = now;
-	run(intro(true));
-	requestAnimationFrame(frame);
-});
+start(frame, () => run(intro(true)));
