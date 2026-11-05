@@ -23,6 +23,7 @@ import {
 } from "../common/ui.js";
 import {
 	clamp,
+	pick,
 	type Script,
 	type Steerable,
 	steer,
@@ -446,6 +447,15 @@ export class Rounds {
 	/** Reports a round cut short by quitting, if it scored anything. */
 	abandon(score: number, time: number) {
 		if (score > 0) this.report(score, time);
+	}
+
+	/**
+	 * Closes the overlay. Clippy then says one of `lines` for the last
+	 * reported round on the desktop; `points` is its formatted score.
+	 */
+	exit(lines: (points: string, last: GameResult) => string[]) {
+		const r = this.last;
+		api.exitGame(r, r ? pick(lines(r.score.toLocaleString("en-US"), r)) : "");
 	}
 }
 

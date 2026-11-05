@@ -16,7 +16,7 @@ export class Arcade {
 	panels: Panels;
 	preload: string;
 	origin: string;
-	onExit: (id: GameId, result: GameResult | null) => void;
+	onExit: (result: GameResult | null, quip: string) => void;
 	win: BrowserWindow | null = null;
 	init: GameInit | null = null;
 	revealed = false;
@@ -32,7 +32,7 @@ export class Arcade {
 		panels: Panels;
 		preload: string;
 		origin: string;
-		onExit: (id: GameId, result: GameResult | null) => void;
+		onExit: (result: GameResult | null, quip: string) => void;
 	}) {
 		this.pet = pet;
 		this.panels = panels;
@@ -125,11 +125,11 @@ export class Arcade {
 		this.pet.win?.hide();
 	}
 
-	/** Closes the overlay and brings the pet back. */
-	exit(result: GameResult | null) {
+	/** Closes the overlay and brings the pet back. `quip` is Clippy's parting line. */
+	exit(result: GameResult | null, quip = "") {
 		if (!this.win) return;
 		const win = this.win;
-		this.finish(result);
+		this.finish(result, quip);
 		if (!win.isDestroyed()) win.destroy();
 	}
 
@@ -137,12 +137,11 @@ export class Arcade {
 		this.exit(null);
 	}
 
-	finish(result: GameResult | null) {
-		const id = this.init?.id;
+	finish(result: GameResult | null, quip = "") {
 		this.win = null;
 		this.init = null;
 		if (this.pet.win && !this.pet.win.isDestroyed())
 			this.pet.win.showInactive();
-		this.onExit(id, result);
+		this.onExit(result, quip);
 	}
 }

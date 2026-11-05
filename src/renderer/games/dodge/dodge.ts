@@ -1,7 +1,7 @@
 // Dodge: Clippy attacks the mouse cursor across the whole screen. This module
 // owns the overlay page: input, game states, HUD, dialogs and sound.
 
-import { $, api, reducedMotion, sfx, tone } from "../../common/ui.js";
+import { $, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	flyTo,
 	pick,
@@ -307,7 +307,18 @@ function quit() {
 			yield* flyTo(c, home, flight(0.6));
 			c.rot = 0;
 			yield* wait(0.15);
-			api.exitGame(rounds.last);
+			rounds.exit((points, r) =>
+				r.record
+					? [
+							`New high score: ${points}! I'll get you next time.`,
+							`${points} points, a new record! I demand a rematch.`,
+						]
+					: [
+							`${points} points! Rematch anytime.`,
+							`You lasted ${Math.round(r.time)} seconds. Not bad, for a cursor.`,
+							`${points} points. I was going easy on you.`,
+						],
+			);
 		})(),
 	);
 }

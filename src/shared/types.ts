@@ -205,7 +205,11 @@ export interface ClippyAPI {
 	gameReady(): void;
 	/** Reports a finished round and converts its score into credits. */
 	gameRound(result: GameResult): Promise<GameRoundReward>;
-	exitGame(result: GameResult | null): void;
+	/**
+	 * Closes the overlay. When the last round scored, Clippy says `quip` on
+	 * the desktop, followed by the credits the session earned.
+	 */
+	exitGame(result: GameResult | null, quip?: string): void;
 	appInfo(): Promise<{
 		version: string;
 		electron: string;

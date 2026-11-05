@@ -3,7 +3,7 @@
 // dialogs and sound. The rules live in trivia.ts.
 
 import { icon } from "../../common/icons.js";
-import { $, $$, api, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
+import { $, $$, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
 	flyTo,
@@ -624,7 +624,18 @@ function quit() {
 			yield* flyTo(actor, home, flight(0.6));
 			actor.rot = 0;
 			yield* wait(0.15);
-			api.exitGame(rounds.last);
+			rounds.exit((points, r) =>
+				r.record
+					? [
+							`New trivia record: ${points} points! Big brain.`,
+							`${points} points, a new best! I'll need harder questions.`,
+						]
+					: [
+							`${points} points! You know your AI.`,
+							`${Math.round(r.time)} seconds of trivia, ${points} points. Smart cookie.`,
+							`${points} points. I'll go easier on the history next time.`,
+						],
+			);
 		})(),
 	);
 }

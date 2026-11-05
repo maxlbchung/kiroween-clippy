@@ -73,7 +73,7 @@ const api: ClippyAPI = {
 	gameInit: () => ipcRenderer.invoke("game:init"),
 	gameReady: () => ipcRenderer.send("game:ready"),
 	gameRound: (result) => ipcRenderer.invoke("game:round", result),
-	exitGame: (result) => ipcRenderer.send("game:exit", result),
+	exitGame: (result, quip) => ipcRenderer.send("game:exit", result, quip),
 
 	// app
 	appInfo: () => ipcRenderer.invoke("app:info"),

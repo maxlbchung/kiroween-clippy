@@ -240,8 +240,11 @@ function wireIpc() {
 		gameCredits += reward.earned;
 		return reward;
 	});
-	ipcMain.on("game:exit", (_e, result: GameResult | null) =>
-		arcade?.exit(cleanGameResult(result)),
+	ipcMain.on("game:exit", (_e, result: GameResult | null, quip: unknown) =>
+		arcade?.exit(
+			cleanGameResult(result),
+			typeof quip === "string" ? quip.slice(0, 200) : "",
+		),
 	);
 
 	// chat (stub agent, real streaming contract)
@@ -350,51 +353,10 @@ function cleanGameResult(result: GameResult | null): GameResult | null {
 	return { score, time, record: result.record === true };
 }
 
-/** Clippy's lines after a round with points, by game. */
-const EXIT_LINES: Record<
-	GameId,
-	(points: string, result: GameResult) => string[]
-> = {
-	dodge: (points, result) =>
-		result.record
-			? [
-					`New high score: ${points}! I'll get you next time.`,
-					`${points} points, a new record! I demand a rematch.`,
-				]
-			: [
-					`${points} points! Rematch anytime.`,
-					`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
-					`${points} points. I was going easy on you.`,
-				],
-	quiz: (points, result) =>
-		result.record
-			? [
-					`New trivia record: ${points} points! Big brain.`,
-					`${points} points, a new best! I'll need harder questions.`,
-				]
-			: [
-					`${points} points! You know your AI.`,
-					`${Math.round(result.time)} seconds of trivia, ${points} points. Smart cookie.`,
-					`${points} points. I'll go easier on the history next time.`,
-				],
-	seek: (points, result) =>
-		result.record
-			? [
-					`New best: ${points}! I need better hiding spots.`,
-					`${points} points, a record! Were you peeking?`,
-				]
-			: [
-					`${points} points! Ready or not, I'll hide again.`,
-					`Found in ${Math.round(result.time)} seconds. Did you peek?`,
-					`${points} points. Next time I'm hiding in the Recycle Bin.`,
-				],
-};
-
-function onGameExit(id: GameId, result: GameResult | null) {
+/** Has Clippy say the game's parting line, plus the credits the session earned. */
+function onGameExit(result: GameResult | null, quip: string) {
 	if (quitting || !result || result.score <= 0) return;
-	const points = result.score.toLocaleString("en-US");
-	const lines = EXIT_LINES[id]?.(points, result) ?? [`${points} points!`];
-	const line = lines[Math.floor(Math.random() * lines.length)];
+	const line = quip || `${result.score.toLocaleString("en-US")} points!`;
 	const text = gameCredits
 		? `${line} You earned ${gameCredits} credits for the wardrobe.`
 		: line;

@@ -7,7 +7,7 @@
 
 import type { GameRoundReward } from "../../../shared/types.js";
 import { blink, clippyMarkup, createGaze } from "../../common/clippy.js";
-import { $, api, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
+import { $, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
 	flyTo,
@@ -574,9 +574,14 @@ function updateHud() {
 		state !== "playing" || hintCooldown > 0 || !r || r.found >= HIDERS;
 }
 
+// Whether the last reported round found every Clippy.
+let lastWon = false;
+
 /** Reports the round's score; later calls for the same round do nothing. */
-function finishRound(score: number, time: number) {
+function finishRound(score: number, time: number, won: boolean) {
+	const before = rounds.last;
 	rounds.report(score, Math.round(time * 10) / 10);
+	if (rounds.last !== before) lastWon = won;
 }
 
 function* intro(first: boolean): Script {
@@ -780,7 +785,7 @@ function stray(at: Vec) {
 function win() {
 	const r = round;
 	state = "ending";
-	finishRound(points(true), r.elapsed);
+	finishRound(points(true), r.elapsed, true);
 	updateHud();
 	run(
 		(function* (): Script {
@@ -860,7 +865,7 @@ function timeUp() {
 	const r = round;
 	state = "ending";
 	r.elapsed = limit;
-	finishRound(points(), limit);
+	finishRound(points(), limit, false);
 	updateHud();
 	sounds.timeUp();
 	countEl.classList.add("small");
@@ -924,7 +929,7 @@ function playAgain() {
 function quit() {
 	if (state === "leaving") return;
 	if (state === "playing" || state === "paused" || state === "countdown") {
-		rounds.abandon(points(), round?.elapsed ?? 0);
+		if (points() > 0) finishRound(points(), round?.elapsed ?? 0, false);
 	}
 	const comeOut = actor.el.hidden;
 	state = "leaving";
@@ -950,7 +955,20 @@ function quit() {
 			actor.mood = null;
 			yield* flyTo(actor, home, flight(0.6));
 			yield* wait(0.15);
-			api.exitGame(rounds.last);
+			rounds.exit((points, r) => [
+				...(r.record
+					? [
+							`New best: ${points}! I need better hiding spots.`,
+							`${points} points, a record! Were you peeking?`,
+						]
+					: [
+							`${points} points! Ready or not, I'll hide again.`,
+							`${points} points. Next time I'm hiding in the Recycle Bin.`,
+						]),
+				...(lastWon
+					? [`Found in ${Math.round(r.time)} seconds. Did you peek?`]
+					: []),
+			]);
 		})(),
 	);
 }
