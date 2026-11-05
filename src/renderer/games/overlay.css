@@ -155,6 +155,10 @@ body.active #dim {
 #hud[hidden] {
 	display: none;
 }
+/* Buttons in the HUD stay clickable. */
+#hud :is(button, a) {
+	pointer-events: auto;
+}
 .hud-cell {
 	display: flex;
 	align-items: baseline;

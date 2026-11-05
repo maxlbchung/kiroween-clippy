@@ -10,13 +10,11 @@ body.paused #dim {
 #desk {
 	position: fixed;
 	inset: 0;
-	z-index: 1;
 }
 
 #fx {
 	position: fixed;
 	inset: 0;
-	z-index: 2;
 	pointer-events: none;
 }
 body.paused #desk,
@@ -118,7 +116,6 @@ body.paused #fx {
 	background: radial-gradient(circle at 35% 35%, #8fd0ff, #1d63d6);
 }
 .ti-img {
-	--g: "";
 	background: linear-gradient(#7cc8f5 55%, #3fb950 55%);
 }
 .ti-video {
@@ -127,11 +124,9 @@ body.paused #fx {
 	font-size: 8px;
 }
 .ti-note {
-	--g: "";
 	background: repeating-linear-gradient(#fff 0 2px, #7aa7e0 2px 3px);
 }
 .ti-paint {
-	--g: "";
 	background: conic-gradient(
 		#e5484d 0 25%,
 		#ffd23f 0 50%,
@@ -141,7 +136,6 @@ body.paused #fx {
 	border-radius: 50%;
 }
 .ti-folder {
-	--g: "";
 	background: linear-gradient(#e8b84a 30%, #ffd86b 30%);
 	border-radius: 1px 4px 1px 1px;
 }
@@ -155,7 +149,6 @@ body.paused #fx {
 	color: #7dffa8;
 }
 .ti-chat {
-	--g: "";
 	border-radius: 50%;
 	background: radial-gradient(circle at 50% 38%, #ffd23f 0 36%, #2f7cf6 37%);
 }
@@ -188,16 +181,13 @@ body.paused #fx {
 	color: var(--ink);
 }
 .ti-mine {
-	--g: "";
 	border-radius: 50%;
 	background: radial-gradient(circle, #17171c 0 45%, #c0c0c0 46%);
 }
 .ti-props {
-	--g: "";
 	background: linear-gradient(#3d7fd6 70%, #57534a 70%);
 }
 .ti-clippy {
-	--g: "";
 	background: #ffffe1;
 	box-shadow: inset 0 0 0 1px var(--ink);
 }
@@ -1170,8 +1160,7 @@ body.paused #fx {
 }
 
 /* Image viewer */
-.k-viewer .tools,
-.k-paint .tools {
+.k-viewer .tools {
 	flex: none;
 	display: flex;
 	align-items: center;
@@ -2018,13 +2007,7 @@ body.paused #fx {
 	color: #fff;
 }
 
-/* Clippy and the small speech bubbles of found Clippies */
-#clippy {
-	z-index: 3;
-}
-#bubble {
-	z-index: 4;
-}
+/* Small speech bubbles of found Clippies */
 .quip {
 	padding: 4px 9px 5px;
 	background: var(--bubble);
@@ -2043,26 +2026,19 @@ body.paused #fx {
 	left: 0;
 	top: 0;
 }
-.jumper {
-	width: 70px;
-	height: 112px;
-}
 .jumper svg {
 	width: 100%;
 	height: 100%;
 }
 .ring {
-	position: absolute;
 	border: 4px solid #ffd23f;
 	border-radius: 50%;
 }
 .bit {
-	position: absolute;
 	width: 7px;
 	height: 7px;
 }
 .pop-text {
-	position: absolute;
 	font: 20px var(--font-px);
 	color: #7dffa8;
 	text-shadow:
@@ -2075,7 +2051,6 @@ body.paused #fx {
 	font-size: 16px;
 }
 .warm {
-	position: absolute;
 	border-radius: 50%;
 	border: 4px dashed #ffd23f;
 	box-shadow:
@@ -2089,7 +2064,6 @@ body.paused #fx {
 	);
 }
 .marker {
-	position: absolute;
 	border: 3px solid #ffd23f;
 	border-radius: 50%;
 	box-shadow:
@@ -2107,7 +2081,6 @@ body.paused #fx {
 #blind {
 	position: fixed;
 	inset: 0;
-	z-index: 5;
 	background: #0b0820;
 	opacity: 0;
 	visibility: hidden;
@@ -2125,10 +2098,8 @@ body.paused #fx {
 /* HUD, with a hint button */
 #hud {
 	top: 14px;
-	z-index: 6;
 	align-items: center;
 	padding: 5px 8px 5px 14px;
-	pointer-events: auto;
 }
 #hud .hud-cell {
 	align-items: center;
@@ -2156,9 +2127,6 @@ body.paused #fx {
 		opacity 0.2s,
 		filter 0.2s;
 }
-.head .hc {
-	position: absolute;
-}
 .head.got {
 	filter: none;
 	opacity: 1;
@@ -2177,18 +2145,12 @@ body.paused #fx {
 
 /* Countdown */
 #count {
-	z-index: 7;
 	text-shadow:
 		4px 4px 0 #30a46c,
 		8px 8px 0 rgba(0, 0, 0, 0.45);
 }
 #count.small {
 	font-size: 64px;
-}
-
-/* Pause, win and time-up dialogs, placed by the game through --stage-x/-y */
-#dialog {
-	z-index: 8;
 }
 
 /* Rolled-up windows hide their content, whatever kind they are. */
