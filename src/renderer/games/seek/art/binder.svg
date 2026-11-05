@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="72" viewBox="0 0 64 72">
+	<title>A black binder clip</title>
+	<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M18 40 L10 6 H30 L24 40" stroke="#373c46" stroke-width="5"/>
+		<path d="M18 40 L10 6 H30 L24 40" stroke="#c9ced6" stroke-width="2.5"/>
+		<path d="M40 40 L34 6 H54 L46 40" stroke="#373c46" stroke-width="5"/>
+		<path d="M40 40 L34 6 H54 L46 40" stroke="#c9ced6" stroke-width="2.5"/>
+	</g>
+	<path d="M8 66 L14 36 H50 L56 66 Z" fill="#26262b" stroke="#0e0e12" stroke-width="2" stroke-linejoin="round"/>
+	<path d="M16 40 H48 L50 48 H14 Z" fill="#4b4b57"/>
+	<path d="M14 44 L12 60" stroke="#6b6b78" stroke-width="2" stroke-linecap="round"/>
+</svg>

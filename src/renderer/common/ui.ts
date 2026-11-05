@@ -37,6 +37,11 @@ export const $$ = <T extends string>(
 	...root.querySelectorAll<ElementForSelector<T>>(sel),
 ];
 
+/** Sets `el`'s text, skipping the DOM write when it is unchanged. */
+export function setText(el: Element, text: string) {
+	if (el.textContent !== text) el.textContent = text;
+}
+
 export function esc(s: unknown) {
 	return String(s ?? "").replace(
 		/[&<>"']/g,
@@ -54,11 +59,9 @@ export const nextFrame = () =>
 		requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
 	);
 
+/** True when the system asks apps to minimize animation. */
 export function reducedMotion() {
-	return (
-		document.documentElement.classList.contains("reduce-motion") ||
-		matchMedia("(prefers-reduced-motion: reduce)").matches
-	);
+	return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -173,11 +176,7 @@ export const sfx = {
 	},
 };
 
-/** Apply app-wide preference classes from settings. */
+/** Apply app-wide preferences from settings. */
 export function applyPrefs(s: PublicSettings) {
-	document.documentElement.classList.toggle(
-		"reduce-motion",
-		!!s?.behavior?.reduceMotion,
-	);
 	setSoundEnabled(s?.behavior?.sounds !== false);
 }

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+	<title>A sunny beach with a palm tree</title>
+	<defs>
+		<linearGradient id="beachsky" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#4aa8ff"/>
+			<stop offset="1" stop-color="#d6f0ff"/>
+		</linearGradient>
+	</defs>
+	<rect width="320" height="200" fill="url(#beachsky)"/>
+	<circle cx="70" cy="46" r="20" fill="#ffe066"/>
+	<rect y="104" width="320" height="40" fill="#1f8fd6"/>
+	<path d="M0 116 Q20 112 40 116 T80 116 T120 116 T160 116 T200 116 T240 116 T280 116 T320 116" fill="none" stroke="#bfe6ff" stroke-width="2"/>
+	<path d="M0 130 Q30 126 60 130 T120 130 T180 130 T240 130 T300 130" fill="none" stroke="#7cc8f5" stroke-width="2"/>
+	<path d="M0 142 Q160 128 320 146 V200 H0 Z" fill="#f2d28c"/>
+	<path d="M248 186 Q240 130 214 84" fill="none" stroke="#8a5a2b" stroke-width="9" stroke-linecap="round"/>
+	<g fill="#2f9e44">
+		<path d="M214 84 Q180 70 160 92 Q190 80 214 88 Z"/>
+		<path d="M214 84 Q196 56 168 56 Q196 68 212 90 Z"/>
+		<path d="M214 84 Q232 54 264 58 Q236 66 218 90 Z"/>
+		<path d="M214 84 Q252 76 270 100 Q240 84 216 90 Z"/>
+	</g>
+	<circle cx="210" cy="92" r="5" fill="#6b4423"/>
+	<circle cx="218" cy="94" r="5" fill="#6b4423"/>
+	<path d="M84 170 L84 128" stroke="#5a3a1a" stroke-width="3"/>
+	<path d="M50 132 Q84 100 118 132 Z" fill="#e5484d"/>
+	<path d="M67 132 Q84 104 84 132 Z M84 132 Q84 104 101 132 Z" fill="#ffffff"/>
+	<circle cx="140" cy="172" r="10" fill="#ffffff"/>
+	<path d="M130 172 A10 10 0 0 1 150 172 Z" fill="#2f7cf6"/>
+	<path d="M140 162 A10 10 0 0 1 150 172 L140 172 Z" fill="#ffd23f"/>
+</svg>

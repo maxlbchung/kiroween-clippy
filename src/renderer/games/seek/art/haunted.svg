@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+	<title>A haunted house on a hill under a full moon</title>
+	<defs>
+		<linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#3a1f6b"/>
+			<stop offset="0.7" stop-color="#c2547a"/>
+			<stop offset="1" stop-color="#ff9a52"/>
+		</linearGradient>
+	</defs>
+	<rect width="320" height="200" fill="url(#dusk)"/>
+	<circle cx="96" cy="70" r="40" fill="#fff0c2"/>
+	<circle cx="84" cy="58" r="7" fill="#f1dfa6"/>
+	<circle cx="110" cy="84" r="5" fill="#f1dfa6"/>
+	<path d="M0 160 Q120 120 220 136 Q280 146 320 132 V200 H0 Z" fill="#1d1230"/>
+	<g fill="#1d1230">
+		<path d="M176 140 V84 L198 62 L220 84 V140 Z"/>
+		<path d="M212 140 V98 L240 74 L268 98 V140 Z"/>
+		<rect x="186" y="44" width="8" height="26"/>
+		<path d="M182 46 L190 30 L198 46 Z"/>
+	</g>
+	<g fill="#ffd23f">
+		<rect x="188" y="92" width="8" height="10"/>
+		<rect x="200" y="92" width="8" height="10"/>
+		<rect x="228" y="106" width="9" height="11"/>
+		<rect x="246" y="106" width="9" height="11"/>
+		<path d="M234 140 V126 Q240 120 246 126 V140 Z"/>
+	</g>
+	<path d="M40 160 Q38 120 52 100 M48 112 L30 98 M50 104 L64 88 M44 128 L24 120" fill="none" stroke="#1d1230" stroke-width="5" stroke-linecap="round"/>
+	<g fill="#1d1230">
+		<path d="M140 40 Q146 34 150 40 Q154 34 160 40 Q154 42 150 46 Q146 42 140 40 Z"/>
+		<path d="M262 30 Q270 22 276 30 Q282 22 290 30 Q282 32 276 38 Q270 32 262 30 Z"/>
+		<path d="M226 52 Q231 47 234 52 Q237 47 242 52 Q237 54 234 57 Q231 54 226 52 Z"/>
+	</g>
+</svg>

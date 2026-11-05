@@ -3,11 +3,16 @@
 
 import { WIRE } from "../../common/clippy.js";
 import { esc } from "../../common/ui.js";
-
-export type Vec = { x: number; y: number };
-
-/** A coroutine resumed once per frame with the frame's delta time. */
-export type Script = Generator<void, void, number>;
+import {
+	clamp,
+	easeOut,
+	type Script,
+	smooth,
+	steer,
+	stepScripts,
+	type Vec,
+} from "../motion.js";
+import { pick, rand } from "../random.js";
 
 /** Radius of the cursor's hitbox around its hotspot. */
 export const HIT_R = 4;
@@ -15,23 +20,8 @@ export const HIT_R = 4;
 export const GRAZE_R = 18;
 export const GRAZE_POINTS = 25;
 
-export const rand = (a: number, b: number) => a + Math.random() * (b - a);
-export const pick = <T>(xs: ArrayLike<T>): T =>
-	xs[Math.floor(Math.random() * xs.length)];
-export const clamp = (v: number, a: number, b: number) =>
-	Math.max(a, Math.min(b, v));
-export const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 export const dist = (a: Vec, b: Vec) => Math.hypot(b.x - a.x, b.y - a.y);
 export const angleTo = (a: Vec, b: Vec) => Math.atan2(b.y - a.y, b.x - a.x);
-export const easeOut = (t: number) => 1 - (1 - t) ** 3;
-export const easeInOut = (t: number) =>
-	t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
-const smooth = (rate: number, dt: number) => 1 - Math.exp(-rate * dt);
-
-/** Shortest signed difference between two angles, in radians. */
-export function angleDiff(from: number, to: number) {
-	return Math.atan2(Math.sin(to - from), Math.cos(to - from));
-}
 
 /** Distance from point `p` to the segment `a`–`b`. */
 function segmentDist(p: Vec, a: Vec, b: Vec) {
@@ -40,25 +30,6 @@ function segmentDist(p: Vec, a: Vec, b: Vec) {
 	const len2 = dx * dx + dy * dy || 1;
 	const t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / len2, 0, 1);
 	return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
-}
-
-export function* wait(seconds: number): Script {
-	let t = 0;
-	while (t < seconds) t += yield;
-}
-
-/** Calls `fn` every frame with eased progress from 0 to 1. */
-export function* tween(
-	seconds: number,
-	fn: (k: number, dt: number) => void,
-	ease = easeInOut,
-): Script {
-	let t = 0;
-	while (t < seconds) {
-		const dt = yield;
-		t += dt;
-		fn(ease(Math.min(1, t / seconds)), dt);
-	}
 }
 
 export type Bullet = {
@@ -559,12 +530,7 @@ export class World {
 	/** Advances every coroutine and entity by `dt`. */
 	update(dt: number) {
 		this.time += dt;
-		for (let i = 0; i < this.tasks.length; i++) {
-			if (this.tasks[i].next(dt).done) {
-				this.tasks.splice(i, 1);
-				i -= 1;
-			}
-		}
+		stepScripts(this.tasks, dt);
 		this.updateBullets(dt);
 		this.updateWindows(dt);
 		this.beams = this.beams.filter((b) => !b.dead);
@@ -687,19 +653,8 @@ export class World {
 	/** Eases Clippy's tilt and squash toward rest. */
 	updateActor(dt: number) {
 		const c = this.clippy;
-		if (dt > 0) {
-			const vx = (c.x - c.px) / dt;
-			c.vx += (vx - c.vx) * smooth(12, dt);
-		}
-		c.px = c.x;
 		c.py = c.y;
-		if (!c.lockRot) {
-			const target = clamp(c.vx * 0.0005, -0.4, 0.4);
-			c.rot += angleDiff(c.rot, target) * smooth(10, dt);
-		}
-		const k = smooth(8, dt);
-		c.sx += (1 - c.sx) * k;
-		c.sy += (1 - c.sy) * k;
+		steer(c, dt);
 	}
 
 	/** Returns the point of impact if anything touches the cursor. */

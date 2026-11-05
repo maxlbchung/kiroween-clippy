@@ -40,7 +40,6 @@ export const DEFAULTS: SettingsData = {
 		launchAtLogin: false,
 		idleChatter: true,
 		eyeTracking: true,
-		reduceMotion: false,
 		sounds: true,
 	},
 };

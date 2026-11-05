@@ -2,14 +2,11 @@
 // While a game runs, the pet window is hidden and the overlay draws Clippy.
 
 import { BrowserWindow, screen } from "electron";
+import { isGameId } from "../shared/games.js";
 import { PET } from "../shared/layout.js";
 import type { GameId, GameInit, GameResult } from "../shared/types.js";
 import type { Panels } from "./panels.js";
 import type { Pet } from "./pet.js";
-
-const PAGES: Record<GameId, string> = {
-	dodge: "renderer/games/dodge/index.html",
-};
 
 // Shows the overlay anyway if the renderer never reports that it is ready.
 const READY_TIMEOUT_MS = 3000;
@@ -19,7 +16,7 @@ export class Arcade {
 	panels: Panels;
 	preload: string;
 	origin: string;
-	onExit: (result: GameResult | null) => void;
+	onExit: (result: GameResult | null, quip: string) => void;
 	win: BrowserWindow | null = null;
 	init: GameInit | null = null;
 	revealed = false;
@@ -35,7 +32,7 @@ export class Arcade {
 		panels: Panels;
 		preload: string;
 		origin: string;
-		onExit: (result: GameResult | null) => void;
+		onExit: (result: GameResult | null, quip: string) => void;
 	}) {
 		this.pet = pet;
 		this.panels = panels;
@@ -50,7 +47,7 @@ export class Arcade {
 
 	/** Closes any open panel and opens game `id` over the pet's display. */
 	async launch(id: GameId) {
-		if (!PAGES[id] || !this.pet.win) return;
+		if (!isGameId(id) || !this.pet.win) return;
 		if (this.win) {
 			this.win.focus();
 			return;
@@ -113,7 +110,7 @@ export class Arcade {
 		// Never leave a dead full-screen window covering the desktop.
 		win.webContents.on("render-process-gone", () => this.close());
 		win.on("unresponsive", () => this.close());
-		win.loadURL(`${this.origin}/${PAGES[id]}`);
+		win.loadURL(`${this.origin}/renderer/games/${id}/index.html`);
 		setTimeout(() => {
 			if (this.win === win) this.reveal();
 		}, READY_TIMEOUT_MS);
@@ -128,11 +125,11 @@ export class Arcade {
 		this.pet.win?.hide();
 	}
 
-	/** Closes the overlay and brings the pet back. */
-	exit(result: GameResult | null) {
+	/** Closes the overlay and brings the pet back. `quip` is Clippy's parting line. */
+	exit(result: GameResult | null, quip = "") {
 		if (!this.win) return;
 		const win = this.win;
-		this.finish(result);
+		this.finish(result, quip);
 		if (!win.isDestroyed()) win.destroy();
 	}
 
@@ -140,11 +137,11 @@ export class Arcade {
 		this.exit(null);
 	}
 
-	finish(result: GameResult | null) {
+	finish(result: GameResult | null, quip = "") {
 		this.win = null;
 		this.init = null;
 		if (this.pet.win && !this.pet.win.isDestroyed())
 			this.pet.win.showInactive();
-		this.onExit(result);
+		this.onExit(result, quip);
 	}
 }

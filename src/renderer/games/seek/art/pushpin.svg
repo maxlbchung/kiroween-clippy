@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="56" viewBox="0 0 40 56">
+	<title>A red pushpin</title>
+	<path d="M20 38 L20 54" stroke="#8a929e" stroke-width="3" stroke-linecap="round"/>
+	<path d="M6 38 Q6 30 14 28 L12 10 Q12 4 20 4 Q28 4 28 10 L26 28 Q34 30 34 38 Z" fill="#e5484d" stroke="#7a0b0b" stroke-width="2" stroke-linejoin="round"/>
+	<path d="M16 10 L17 26" stroke="#ff9a9a" stroke-width="3" stroke-linecap="round"/>
+</svg>

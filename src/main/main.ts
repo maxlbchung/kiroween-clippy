@@ -233,8 +233,11 @@ function wireIpc() {
 		gameCredits += reward.earned;
 		return reward;
 	});
-	ipcMain.on("game:exit", (_e, result: GameResult | null) =>
-		arcade?.exit(cleanGameResult(result)),
+	ipcMain.on("game:exit", (_e, result: GameResult | null, quip: unknown) =>
+		arcade?.exit(
+			cleanGameResult(result),
+			typeof quip === "string" ? quip.slice(0, 200) : "",
+		),
 	);
 
 	// chat (stub agent, real streaming contract)
@@ -343,20 +346,10 @@ function cleanGameResult(result: GameResult | null): GameResult | null {
 	return { score, time, record: result.record === true };
 }
 
-function onGameExit(result: GameResult | null) {
+/** Has Clippy say the game's parting line, plus the credits the session earned. */
+function onGameExit(result: GameResult | null, quip: string) {
 	if (quitting || !result || result.score <= 0) return;
-	const points = result.score.toLocaleString("en-US");
-	const lines = result.record
-		? [
-				`New high score: ${points}! I'll get you next time.`,
-				`${points} points, a new record! I demand a rematch.`,
-			]
-		: [
-				`${points} points! Rematch anytime.`,
-				`You lasted ${Math.round(result.time)} seconds. Not bad, for a cursor.`,
-				`${points} points. I was going easy on you.`,
-			];
-	const line = lines[Math.floor(Math.random() * lines.length)];
+	const line = quip || `${result.score.toLocaleString("en-US")} points!`;
 	const text = gameCredits
 		? `${line} You earned ${gameCredits} credits for the wardrobe.`
 		: line;

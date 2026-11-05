@@ -250,7 +250,6 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
         ${check("behavior.idleChatter", "Idle chatter", b.idleChatter, "Occasional tips and quips.")}
         ${check("behavior.eyeTracking", "Follow my cursor with his eyes", b.eyeTracking)}
         ${check("behavior.sounds", "Retro sound effects", b.sounds)}
-        ${check("behavior.reduceMotion", "Reduce motion", b.reduceMotion)}
       </fieldset>`;
 	}
 

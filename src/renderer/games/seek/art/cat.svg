@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+	<title>An orange cat sitting on a rug</title>
+	<rect width="320" height="200" fill="#f4dca8"/>
+	<rect y="150" width="320" height="50" fill="#b8814a"/>
+	<g stroke="#9a6a3a" stroke-width="2">
+		<line x1="0" y1="166" x2="320" y2="166"/>
+		<line x1="0" y1="184" x2="320" y2="184"/>
+	</g>
+	<rect x="198" y="22" width="92" height="76" fill="#ffffff"/>
+	<rect x="204" y="28" width="80" height="64" fill="#9fd3ff"/>
+	<path d="M204 80 Q240 64 284 78 V92 H204 Z" fill="#6cc04a"/>
+	<path d="M244 28 V92 M204 60 H284" stroke="#ffffff" stroke-width="5"/>
+	<ellipse cx="140" cy="172" rx="96" ry="18" fill="#d9475b"/>
+	<ellipse cx="140" cy="172" rx="76" ry="12" fill="none" stroke="#ffd23f" stroke-width="3" stroke-dasharray="6 5"/>
+	<path d="M188 160 Q226 150 214 120 Q208 106 220 98" fill="none" stroke="#e8892e" stroke-width="12" stroke-linecap="round"/>
+	<ellipse cx="146" cy="134" rx="40" ry="34" fill="#f0973a"/>
+	<path d="M118 122 Q146 112 172 124" fill="none" stroke="#c96d1d" stroke-width="5" stroke-linecap="round"/>
+	<path d="M116 138 Q146 128 176 140" fill="none" stroke="#c96d1d" stroke-width="5" stroke-linecap="round"/>
+	<ellipse cx="128" cy="164" rx="12" ry="7" fill="#fff3e0"/>
+	<ellipse cx="164" cy="164" rx="12" ry="7" fill="#fff3e0"/>
+	<path d="M112 70 L118 40 L134 60 Z M178 70 L172 40 L156 60 Z" fill="#f0973a" stroke="#c96d1d" stroke-width="3" stroke-linejoin="round"/>
+	<path d="M118 50 L124 60 M172 50 L166 60" stroke="#ffb3c1" stroke-width="5" stroke-linecap="round"/>
+	<circle cx="145" cy="82" r="34" fill="#f0973a"/>
+	<ellipse cx="145" cy="96" rx="18" ry="12" fill="#fff3e0"/>
+	<ellipse cx="132" cy="78" rx="6" ry="8" fill="#2a2a2a"/>
+	<ellipse cx="158" cy="78" rx="6" ry="8" fill="#2a2a2a"/>
+	<circle cx="130" cy="75" r="2" fill="#ffffff"/>
+	<circle cx="156" cy="75" r="2" fill="#ffffff"/>
+	<path d="M141 90 H149 L145 95 Z" fill="#e05a7a"/>
+	<path d="M145 95 Q140 101 135 98 M145 95 Q150 101 155 98" fill="none" stroke="#2a2a2a" stroke-width="2" stroke-linecap="round"/>
+	<path d="M124 94 L102 90 M124 98 L102 100 M166 94 L188 90 M166 98 L188 100" stroke="#5a3a1a" stroke-width="1.5"/>
+	<circle cx="60" cy="160" r="14" fill="#5b8def"/>
+	<path d="M48 154 Q60 166 72 152 M50 166 Q62 152 72 166" fill="none" stroke="#2f5fc0" stroke-width="2"/>
+	<path d="M72 164 Q90 176 100 168" fill="none" stroke="#5b8def" stroke-width="2"/>
+</svg>

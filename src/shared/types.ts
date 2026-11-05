@@ -51,7 +51,6 @@ export type BehaviorSettings = {
 	launchAtLogin: boolean;
 	idleChatter: boolean;
 	eyeTracking: boolean;
-	reduceMotion: boolean;
 	sounds: boolean;
 };
 
@@ -102,7 +101,9 @@ export type ChatEvent =
 
 export type Unsubscribe = () => void;
 
-export type GameId = "dodge";
+import type { GameId } from "./games.js";
+
+export type { GameId };
 
 /** Startup data for a full-screen game, in overlay window coordinates. */
 export type GameInit = {
@@ -116,7 +117,7 @@ export type GameInit = {
 
 export type GameResult = {
 	score: number;
-	/** Seconds survived. */
+	/** Seconds played in the round. */
 	time: number;
 	record: boolean;
 };
@@ -204,7 +205,11 @@ export interface ClippyAPI {
 	gameReady(): void;
 	/** Reports a finished round and converts its score into credits. */
 	gameRound(result: GameResult): Promise<GameRoundReward>;
-	exitGame(result: GameResult | null): void;
+	/**
+	 * Closes the overlay. When the last round scored, Clippy says `quip` on
+	 * the desktop, followed by the credits the session earned.
+	 */
+	exitGame(result: GameResult | null, quip?: string): void;
 	appInfo(): Promise<{
 		version: string;
 		electron: string;
