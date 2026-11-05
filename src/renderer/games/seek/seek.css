@@ -32,6 +32,13 @@ body.paused #fx {
 	overflow: hidden;
 	box-shadow:
 		var(--bevel-out),
+		3px 4px 0 rgba(23, 23, 28, 0.2);
+}
+/* Only the front window gets a soft shadow, which is costly to repaint. */
+.sw.top,
+.sw.dragging {
+	box-shadow:
+		var(--bevel-out),
 		3px 4px 0 rgba(23, 23, 28, 0.2),
 		0 10px 24px rgba(0, 0, 0, 0.22);
 }
@@ -1221,6 +1228,7 @@ body.paused #fx {
 	overflow: hidden;
 	background: #000;
 	box-shadow: var(--bevel-well);
+	container-type: inline-size;
 }
 .k-video .bg {
 	position: absolute;
@@ -1231,6 +1239,7 @@ body.paused #fx {
 }
 .k-video .fish {
 	position: absolute;
+	left: 0;
 	width: 46px;
 	animation: swim 7s linear infinite;
 }
@@ -1245,10 +1254,10 @@ body.paused #fx {
 }
 @keyframes swim {
 	from {
-		left: 105%;
+		transform: translateX(105cqw);
 	}
 	to {
-		left: -20%;
+		transform: translateX(-20cqw);
 	}
 }
 .k-video .ghost {
@@ -1316,15 +1325,16 @@ body.paused #fx {
 	display: block;
 	height: 100%;
 	background: linear-gradient(#5aa0ff, #1d63d6);
+	transform-origin: left;
 	animation: progress var(--len, 120s) linear infinite;
 	animation-delay: -30s;
 }
 @keyframes progress {
 	from {
-		width: 0;
+		transform: scaleX(0);
 	}
 	to {
-		width: 100%;
+		transform: scaleX(1);
 	}
 }
 .k-video .time {
@@ -2186,6 +2196,21 @@ body.paused #fx {
 	visibility: hidden;
 }
 
+/* The HUD's heads and the hiding Clippies are small or buried, so their
+   costumes stay still instead of repainting the pile every frame. */
+.head :is(.cos-spin, .cos-float, .cos-wobble, .cos-swing, .cos-glow, .cos-cape),
+.hider:not(.revealed)
+	:is(.cos-spin, .cos-float, .cos-wobble, .cos-swing, .cos-glow, .cos-cape) {
+	animation: none;
+}
+
+/* Hidden animations would still repaint every frame. */
+body.paused #desk *,
+body.paused #fx *,
+#desk .sw.shaded .sw-body * {
+	animation-play-state: paused;
+}
+
 /* Leaves scrolling text and the video's progress bar at a readable rest. */
 @media (prefers-reduced-motion: reduce) {
 	.site-news .ticker span,
@@ -2194,6 +2219,6 @@ body.paused #fx {
 		padding-left: 0;
 	}
 	.k-video .seek i {
-		width: 35%;
+		transform: scaleX(0.35);
 	}
 }

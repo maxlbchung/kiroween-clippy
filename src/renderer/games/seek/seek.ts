@@ -1254,9 +1254,13 @@ function render(now: number) {
 
 function updateHiders(now: number, dt: number) {
 	const r = round;
-	if (!r) return;
-	for (const h of r.hiders) {
-		if (h.found || h.el.classList.contains("lurk")) continue;
+	if (!r || state === "paused") return;
+	const awake = r.hiders.filter(
+		(h) => !h.found && !h.el.classList.contains("lurk"),
+	);
+	// Reads every position before moving any pupils, so the page lays out
+	// once per frame instead of once per Clippy.
+	for (const h of awake) {
 		const at = center(h.el.getBoundingClientRect());
 		if (Math.hypot(cursor.x - at.x, cursor.y - at.y) < 320)
 			h.gaze.lookAt(cursor.x, cursor.y);
@@ -1264,6 +1268,8 @@ function updateHiders(now: number, dt: number) {
 			h.gaze.lookDir(rand(-1, 1), rand(-0.6, 0.8));
 			h.nextLook = now + rand(1200, 3200);
 		}
+	}
+	for (const h of awake) {
 		h.gaze.tick(dt);
 		if (now > h.nextBlink) {
 			blink(h.svg, { double: Math.random() < 0.2 });
