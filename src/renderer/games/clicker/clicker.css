@@ -182,6 +182,9 @@
 	display: flex;
 	align-items: center;
 	gap: 4px;
+	margin: 0;
+	padding: 0;
+	border: 0;
 }
 .amounts .hint {
 	margin-right: 4px;
@@ -204,7 +207,7 @@
 	background: var(--well);
 	box-shadow: var(--bevel-well);
 }
-.good img {
+#goods .good img {
 	width: 40px;
 	height: 40px;
 	image-rendering: pixelated;
@@ -246,7 +249,7 @@
 .good-buy:disabled .price {
 	color: inherit;
 }
-.good.locked img {
+#goods .good.locked img {
 	filter: brightness(0) opacity(0.35);
 }
 .good.locked .good-name {
