@@ -196,10 +196,9 @@ The first milestone delivers every requirement in this document end to end at a 
 #### Acceptance Criteria
 
 1. WHEN the Clippy_Agent shows a message, THE Speech_Bubble SHALL display the message text inside the work area of the Pet's display.
-2. WHILE a Target is outlined, THE Speech_Bubble SHALL point the Speech_Bubble's tail toward the Target.
-3. WHEN a message includes buttons, THE Speech_Bubble SHALL show the buttons and report the clicked button to the Clippy_Agent.
-4. WHILE a Task is running, THE Speech_Bubble SHALL keep the current Step's message visible until the next Step's message replaces it or the Task ends.
-5. WHILE the Clippy_Agent waits for a model response, THE Pet SHALL show the thinking mood.
+2. WHEN a message includes buttons, THE Speech_Bubble SHALL show the buttons and report the clicked button to the Clippy_Agent.
+3. WHILE a Task is running, THE Speech_Bubble SHALL keep the current Step's message visible until the next Step's message replaces it or the Task ends.
+4. WHILE the Clippy_Agent waits for a model response, THE Pet SHALL show the thinking mood.
 
 ### Requirement 13: Proactive tips
 
