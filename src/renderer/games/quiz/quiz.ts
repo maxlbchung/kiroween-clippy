@@ -2,33 +2,34 @@
 // full-screen overlay. This module owns the page: input, round flow, HUD,
 // dialogs and sound. The rules live in trivia.ts.
 
-import type {
-	GameInit,
-	GameResult,
-	GameRoundReward,
-} from "../../../shared/types.js";
-import { blink, clippyMarkup, createGaze } from "../../common/clippy.js";
 import { icon } from "../../common/icons.js";
-import {
-	$,
-	$$,
-	api,
-	applyPrefs,
-	esc,
-	reducedMotion,
-	sfx,
-	tone,
-} from "../../common/ui.js";
+import { $, $$, api, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
+	flyTo,
 	pick,
 	type Script,
-	smooth,
+	stepScripts,
 	tween,
 	type Vec,
 	wait,
 } from "../motion.js";
-import { formatScore, loadBest, saveBest } from "../score.js";
+import {
+	Actor,
+	Bubble,
+	countdown,
+	Dialog,
+	flight,
+	loadFont,
+	openOverlay,
+	pauseDialog,
+	pauseWhenAway,
+	Rounds,
+	resultsDialog,
+	start,
+	whoosh,
+} from "../overlay.js";
+import { formatScore } from "../score.js";
 import { QUESTIONS } from "./questions.js";
 import {
 	type Award,
@@ -65,37 +66,14 @@ const revealEl = $("#reveal");
 const verdictEl = $("#verdict");
 const factEl = $("#fact");
 const nextBtn = $("#next");
-const clippyEl = $("#clippy");
-const bubble = $("#bubble");
 const hud = $("#hud");
 const scoreEl = $("#score");
 const bestEl = $("#best");
 const streakEl = $("#streak");
 const countEl = $("#count");
-const dialog = $("#dialog");
 const root = document.documentElement;
 
-const settings = await api.getSettings();
-applyPrefs(settings);
-const init: GameInit = (await api.gameInit()) ?? {
-	id: "quiz",
-	scale: 1,
-	home: {
-		x: window.innerWidth - 260,
-		y: window.innerHeight - 320,
-		width: 140,
-		height: 224,
-	},
-	cursor: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-};
-const s = init.scale;
-// Clippy's body centre inside his SVG box, at scale 1.
-const ANCHOR = { x: 70, y: 130 };
-const home: Vec = {
-	x: init.home.x + ANCHOR.x * s,
-	y: init.home.y + ANCHOR.y * s,
-};
-const cursor: Vec = { ...init.cursor };
+const { settings, scale: s, home, cursor } = await openOverlay("quiz");
 // Seconds left at which the timer turns red and starts ticking.
 const LOW_TIME = 5;
 // Width of one block in the timer's progress bar, gap included, in px.
@@ -105,22 +83,21 @@ const WIN_H = 510;
 // Answer keys, in option order.
 const KEYS = ["1234", "abcd"];
 
-clippyEl.style.width = `${140 * s}px`;
-clippyEl.style.height = `${224 * s}px`;
-clippyEl.style.transformOrigin = `${ANCHOR.x * s}px ${ANCHOR.y * s}px`;
-$(".bob", clippyEl).innerHTML = clippyMarkup({
+const actor = new Actor($("#clippy"), {
 	uid: "quiz",
 	costume: settings.costume,
+	scale: s,
+	at: home,
 });
-const svg = $("svg", clippyEl);
-const gaze = createGaze(svg);
+const bubble = new Bubble($("#bubble"), s);
+const dialog = new Dialog($("#dialog"), (act) => {
+	if (act === "resume") resume();
+	else if (act === "again") playAgain();
+	else if (act === "quit") quit();
+});
+const rounds = new Rounds("quiz");
 
 const sounds = {
-	beep: () => tone(660, { dur: 0.09, gain: 0.04 }),
-	go: () => {
-		tone(880, { dur: 0.08, gain: 0.045 });
-		tone(1320, { at: 0.08, dur: 0.22, gain: 0.045 });
-	},
 	tick: () => tone(1800, { dur: 0.03, type: "triangle", gain: 0.03 }),
 	right: () => {
 		tone(660, { dur: 0.08, type: "triangle", gain: 0.06 });
@@ -138,38 +115,11 @@ const sounds = {
 		});
 	},
 	buzz: () => tone(110, { dur: 0.55, type: "square", gain: 0.04 }),
-	whoosh: () =>
-		tone(1300, { dur: 0.2, type: "triangle", gain: 0.035, slide: -1000 }),
 	fanfare: () => {
 		for (const [i, f] of [523, 659, 784, 1046].entries())
 			tone(f, { at: i * 0.1, dur: i === 3 ? 0.35 : 0.1, gain: 0.045 });
 	},
 };
-
-/** Clippy in the overlay. `lift` raises him without moving his anchor. */
-const actor = {
-	x: home.x,
-	y: home.y,
-	px: home.x,
-	vx: 0,
-	rot: 0,
-	lift: 0,
-	lockRot: false,
-	mood: null as string | null,
-};
-
-/** Tilts Clippy into his horizontal motion, like the Dodge actor. */
-function updateActor(dt: number) {
-	if (dt > 0) {
-		const vx = (actor.x - actor.px) / dt;
-		actor.vx += (vx - actor.vx) * smooth(12, dt);
-	}
-	actor.px = actor.x;
-	if (!actor.lockRot) {
-		const target = clamp(actor.vx * 0.0005, -0.4, 0.4);
-		actor.rot += (target - actor.rot) * smooth(10, dt);
-	}
-}
 
 // Stage layout in overlay px, updated by `layout()`.
 let host: Vec = { ...home };
@@ -209,15 +159,6 @@ function layout() {
 	}
 }
 
-let bubbleUntil = 0;
-let bubbleSize = { w: 0, h: 0 };
-function say(text: string, seconds = 1.6) {
-	bubble.textContent = text;
-	bubble.classList.add("show");
-	bubbleSize = { w: bubble.offsetWidth, h: bubble.offsetHeight };
-	bubbleUntil = performance.now() + (seconds + text.length * 0.03) * 1000;
-}
-
 let state: State = "intro";
 let pausedFrom: State = "asking";
 let scripts: Script[] = [];
@@ -230,36 +171,13 @@ let timeLeft = TIME_LIMIT;
 let lastTick = TIME_LIMIT;
 // Seconds spent on questions this round, excluding pauses.
 let roundTime = 0;
-let reported = false;
 // Whether the card shows a question rather than the "Get ready" placeholder.
 let questionShown = false;
-let best = loadBest("quiz");
-let lastResult: GameResult | null = null;
-// Credits for the last finished round, resolved by the main process.
-let reward: Promise<GameRoundReward | null> = Promise.resolve(null);
 
 const current = () => round[qi];
 
-/** Reports a round so its score turns into credits. Runs at most once per round. */
-function endRound(result: GameResult) {
-	if (reported) return;
-	reported = true;
-	lastResult = result;
-	reward = api.gameRound(result).catch(() => null);
-}
-
 function run(script: Script) {
 	scripts.push(script);
-}
-
-const flight = (seconds: number) => (reducedMotion() ? 0.01 : seconds);
-
-function* flyTo(to: Vec, seconds: number): Script {
-	const from = { x: actor.x, y: actor.y };
-	yield* tween(seconds, (k) => {
-		actor.x = from.x + (to.x - from.x) * k;
-		actor.y = from.y + (to.y - from.y) * k;
-	});
 }
 
 function* hop(): Script {
@@ -288,19 +206,6 @@ function* shake(): Script {
 	actor.lockRot = false;
 }
 
-function* countdown(steps: string[], each: number): Script {
-	for (let i = 0; i < steps.length; i++) {
-		countEl.textContent = steps[i];
-		countEl.classList.remove("pop");
-		void countEl.offsetWidth;
-		countEl.classList.add("pop");
-		(i === steps.length - 1 ? sounds.go : sounds.beep)();
-		yield* wait(each);
-	}
-	countEl.textContent = "";
-	countEl.classList.remove("pop");
-}
-
 function openWindow() {
 	if (!show.hidden) return;
 	show.hidden = false;
@@ -325,7 +230,7 @@ function closeWindow() {
 
 function updateHud() {
 	scoreEl.textContent = formatScore(tally.score);
-	bestEl.textContent = formatScore(Math.max(best, tally.score));
+	bestEl.textContent = formatScore(Math.max(rounds.best, tally.score));
 	streakEl.textContent = `×${tally.streak}`;
 }
 
@@ -440,7 +345,7 @@ function startRound(first: boolean) {
 	tally = newTally();
 	lifelineUsed = false;
 	roundTime = 0;
-	reported = false;
+	rounds.begin();
 	updateHud();
 	run(intro(first));
 }
@@ -450,11 +355,11 @@ function* intro(first: boolean): Script {
 	document.body.classList.add("active");
 	actor.mood = "happy";
 	if (first) {
-		say("It looks like you want to test your AI smarts!", 1.2);
+		bubble.say("It looks like you want to test your AI smarts!", 1.2);
 		yield* wait(0.6);
-		yield* flyTo(host, flight(0.9));
+		yield* flyTo(actor, host, flight(0.9));
 	} else {
-		say(
+		bubble.say(
 			pick(["Round two!", "Back for more?", "Fresh questions, coming up!"]),
 			0.8,
 		);
@@ -463,13 +368,13 @@ function* intro(first: boolean): Script {
 	openWindow();
 	hud.hidden = false;
 	if (first)
-		say(
+		bubble.say(
 			`Welcome to AI Trivia! ${round.length} questions, ${TIME_LIMIT} seconds each.`,
 			1.4,
 		);
 	yield* wait(first ? 1.4 : 0.4);
 	state = "countdown";
-	yield* countdown(["3", "2", "1", "GO!"], 0.5);
+	yield* countdown(countEl, ["3", "2", "1", "GO!"], 0.5);
 	ask();
 }
 
@@ -482,7 +387,7 @@ function ask() {
 	if (document.activeElement instanceof HTMLElement)
 		document.activeElement.blur();
 	actor.mood = "thinking";
-	say(askLine(), 1);
+	bubble.say(askLine(), 1);
 	sfx.pop();
 }
 
@@ -506,7 +411,7 @@ function answer(choice: number | null) {
 		popPoints(choice, result.award.total);
 		actor.mood = "happy";
 		run(hop());
-		say(
+		bubble.say(
 			tally.streak >= 3
 				? pick([
 						`${tally.streak} in a row! Are you secretly a robot?`,
@@ -525,7 +430,7 @@ function answer(choice: number | null) {
 		sounds.buzz();
 		actor.mood = "smug";
 		run(shake());
-		say(
+		bubble.say(
 			pick([
 				"Time's up!",
 				"Tick tock! Too slow.",
@@ -538,7 +443,7 @@ function answer(choice: number | null) {
 		const smug = Math.random() < 0.5;
 		actor.mood = smug ? "smug" : "sad";
 		run(shake());
-		say(
+		bubble.say(
 			smug
 				? pick([
 						"Nope! It looks like you guessed.",
@@ -564,8 +469,8 @@ function useLifeline() {
 		optEls[i].classList.add("removed");
 	}
 	lifeline.disabled = true;
-	sounds.whoosh();
-	say(
+	whoosh();
+	bubble.say(
 		pick([
 			"Poof! Two wrong answers, gone.",
 			"Two down, two to go!",
@@ -585,15 +490,12 @@ function next() {
 
 function finish() {
 	state = "over";
-	const score = tally.score;
-	const record = saveBest("quiz", score);
-	best = loadBest("quiz");
-	endRound({ score, time: roundTime, record });
+	rounds.report(tally.score, roundTime);
 	updateHud();
 	const g = grade(tally.correct / round.length);
 	actor.mood = g.mood;
 	if (g.mood === "happy") run(hop());
-	say(g.line, 2);
+	bubble.say(g.line, 2);
 	sounds.fanfare();
 	show.classList.add("dimmed");
 	showGameOver(g);
@@ -644,55 +546,28 @@ function grade(ratio: number): Grade {
 }
 
 function showGameOver(g: Grade) {
-	const r = lastResult;
-	showDialog({
-		title: "Results",
-		body: `
-      <div class="dlg-head">
-        <span class="fw-icon ${g.glyph}"></span>
-        <div>
-          <p class="dlg-title px">${esc(g.title)}</p>
-          <p class="hint">${esc(g.sub)}</p>
-        </div>
-      </div>
-      <div class="go-score">
-        <span class="label">Score</span>
-        <b class="px">${formatScore(r.score)}</b>
-        ${r.record ? '<span class="go-new px">NEW BEST!</span>' : ""}
-      </div>
-      <dl class="go-stats">
-        <dt>Correct answers</dt><dd class="px">${tally.correct} / ${round.length}</dd>
-        <dt>Best streak</dt><dd class="px">${tally.bestStreak}</dd>
-        <dt>Time</dt><dd class="px">${Math.round(r.time)} s</dd>
-        <dt>Best</dt><dd class="px">${formatScore(best)}</dd>
-      </dl>
-      <div class="go-credits">
-        ${icon("coin", 24)}
-        <b class="px" data-earned>+…</b>
-        <span class="hint" data-wallet>Counting credits…</span>
-      </div>`,
-		buttons: [
-			{ label: "Play again", act: "again", primary: true },
-			{ label: "Quit", act: "quit" },
-		],
-		onClose: "quit",
-	});
-	const shown = dialog.firstElementChild;
-	reward.then((r) => {
-		if (dialog.firstElementChild !== shown) return;
-		const earned = dialog.querySelector("[data-earned]");
-		const wallet = dialog.querySelector("[data-wallet]");
-		if (!earned || !wallet) return;
-		earned.textContent = `+${r?.earned ?? 0} credits`;
-		wallet.textContent = r
-			? `${r.credits} to spend in the Wardrobe`
-			: "Credits are unavailable right now.";
-	});
+	const r = rounds.last;
+	dialog.show(
+		resultsDialog({
+			title: "Results",
+			glyph: g.glyph,
+			heading: g.title,
+			hint: g.sub,
+			result: r,
+			stats: [
+				["Correct answers", `${tally.correct} / ${round.length}`],
+				["Best streak", tally.bestStreak],
+				["Time", `${Math.round(r.time)} s`],
+				["Best", formatScore(rounds.best)],
+			],
+		}),
+		{ reward: rounds.reward },
+	);
 }
 
 function playAgain() {
 	if (state !== "over") return;
-	hideDialog();
+	dialog.hide();
 	show.classList.remove("dimmed");
 	startRound(false);
 }
@@ -704,27 +579,17 @@ function pause() {
 	state = "paused";
 	countEl.hidden = true;
 	sfx.close();
-	showDialog({
-		title: "Paused",
-		body: `
-      <div class="dlg-head">
-        <span class="fw-icon ask"></span>
-        <div>
-          <p class="dlg-title px">Taking a break?</p>
-          <p class="hint">The clock is stopped. No peeking at the question!</p>
-        </div>
-      </div>`,
-		buttons: [
-			{ label: "Resume", act: "resume", primary: true },
-			{ label: "Quit", act: "quit" },
-		],
-		onClose: "resume",
-	});
+	dialog.show(
+		pauseDialog(
+			"Taking a break?",
+			"The clock is stopped. No peeking at the question!",
+		),
+	);
 }
 
 function resume() {
 	if (state !== "paused") return;
-	hideDialog();
+	dialog.hide();
 	countEl.hidden = false;
 	if (pausedFrom !== "asking") {
 		state = pausedFrom;
@@ -734,7 +599,7 @@ function resume() {
 	state = "countdown";
 	run(
 		(function* (): Script {
-			yield* countdown(["READY", "GO!"], 0.45);
+			yield* countdown(countEl, ["READY", "GO!"], 0.45);
 			state = "asking";
 		})(),
 	);
@@ -742,59 +607,26 @@ function resume() {
 
 function quit() {
 	if (state === "leaving") return;
-	const score = tally.score;
-	if (!reported && score > 0)
-		endRound({ score, time: roundTime, record: saveBest("quiz", score) });
+	rounds.abandon(tally.score, roundTime);
 	state = "leaving";
 	scripts = [];
-	hideDialog();
+	dialog.hide();
 	closeWindow();
 	hud.hidden = true;
 	countEl.textContent = "";
-	bubble.classList.remove("show");
+	bubble.hide();
 	document.body.classList.remove("active");
 	actor.mood = null;
 	actor.lift = 0;
 	actor.lockRot = false;
 	run(
 		(function* (): Script {
-			yield* flyTo(home, flight(0.6));
+			yield* flyTo(actor, home, flight(0.6));
 			actor.rot = 0;
 			yield* wait(0.15);
-			api.exitGame(lastResult);
+			api.exitGame(rounds.last);
 		})(),
 	);
-}
-
-type DialogSpec = {
-	title: string;
-	body: string;
-	buttons: { label: string; act: string; primary?: boolean }[];
-	onClose: string;
-};
-
-function showDialog(spec: DialogSpec) {
-	dialog.innerHTML = `
-    <div class="titlebar">
-      <div class="titlebar-text">${esc(spec.title)}</div>
-      <button class="icon-btn" data-act="${esc(spec.onClose)}" aria-label="Close"><span class="x-glyph"></span></button>
-    </div>
-    <div class="win-body">
-      ${spec.body}
-      <div class="dlg-btns">
-        ${spec.buttons.map((b) => `<button class="btn${b.primary ? " btn-primary" : ""}" data-act="${esc(b.act)}">${esc(b.label)}</button>`).join("")}
-      </div>
-    </div>`;
-	dialog.hidden = false;
-	dialog.classList.remove("entered");
-	void dialog.offsetWidth;
-	dialog.classList.add("entered");
-	dialog.querySelector<HTMLElement>(".btn-primary")?.focus();
-}
-
-function hideDialog() {
-	dialog.hidden = true;
-	dialog.innerHTML = "";
 }
 
 document.addEventListener("click", (e) => {
@@ -810,19 +642,10 @@ document.addEventListener("click", (e) => {
 	if (act === "pause") pause();
 	else if (act === "next") next();
 	else if (act === "lifeline") useLifeline();
-	else {
-		sfx.select();
-		if (act === "resume") resume();
-		else if (act === "again") playAgain();
-		else if (act === "quit") quit();
-	}
 });
 
-window.addEventListener("pointermove", (e) => {
-	cursor.x = e.clientX;
-	cursor.y = e.clientY;
-});
-window.addEventListener("blur", pause);
+// Moving the cursor to another display doesn't stop the quiz.
+pauseWhenAway(pause, false);
 window.addEventListener("resize", layout);
 window.addEventListener("keydown", (e) => {
 	if (e.key === "Escape") {
@@ -852,35 +675,14 @@ window.addEventListener("keydown", (e) => {
 	}
 });
 
-let clippyClass = "";
 function render(now: number) {
-	clippyEl.style.transform = `translate(${(actor.x - ANCHOR.x * s).toFixed(1)}px, ${(actor.y - actor.lift - ANCHOR.y * s).toFixed(1)}px) rotate(${actor.rot.toFixed(3)}rad)`;
-	const cls = `mood-${actor.mood || "idle"}`;
-	if (cls !== clippyClass) {
-		clippyClass = cls;
-		clippyEl.className = cls;
-	}
-
-	if (now > bubbleUntil) bubble.classList.remove("show");
-	if (bubble.classList.contains("show")) {
-		const cx = actor.x;
-		// Keeps the bubble clear of the quiz window while it is open.
-		const right = show.hidden ? window.innerWidth - 8 : winLeft - 12;
-		const bx = clamp(
-			cx - bubbleSize.w / 2,
-			8,
-			Math.max(8, right - bubbleSize.w),
-		);
-		let by = actor.y - actor.lift - 138 * s - bubbleSize.h;
-		const below = by < 8;
-		if (below) by = actor.y - actor.lift + 110 * s;
-		bubble.classList.toggle("below", below);
-		bubble.style.setProperty(
-			"--tail",
-			`${clamp(cx - bx, 16, bubbleSize.w - 16).toFixed(0)}px`,
-		);
-		bubble.style.transform = `translate(${bx.toFixed(0)}px, ${by.toFixed(0)}px)`;
-	}
+	actor.render();
+	// Keeps the bubble clear of the quiz window while it is open.
+	bubble.update(
+		now,
+		actor.head,
+		show.hidden ? window.innerWidth - 8 : winLeft - 12,
+	);
 
 	// Hides the question while the clock is stopped.
 	show.classList.toggle(
@@ -906,42 +708,17 @@ function updateTimer(dt: number) {
 	if (timeLeft <= 0) answer(null);
 }
 
-let last = performance.now();
-let nextBlink = last + 2500;
-function frame(now: number) {
-	const dt = Math.min(1 / 30, Math.max(0, (now - last) / 1000));
-	last = now;
+function frame(dt: number, now: number) {
 	if (state !== "paused") {
-		for (let i = 0; i < scripts.length; i++) {
-			if (scripts[i].next(dt).done) {
-				scripts.splice(i, 1);
-				i -= 1;
-			}
-		}
+		stepScripts(scripts, dt);
 		updateTimer(dt);
 	}
-	updateActor(dt);
-	gaze.lookAt(cursor.x, cursor.y);
-	gaze.tick(dt);
-	if (now > nextBlink) {
-		if (actor.mood !== "happy") blink(svg);
-		nextBlink = now + 2000 + Math.random() * 3500;
-	}
+	actor.update(dt, now, cursor);
 	render(now);
-	requestAnimationFrame(frame);
 }
 
-try {
-	await document.fonts.load('16px "Pixelify Sans"');
-} catch {
-	/* text falls back to Tahoma */
-}
+await loadFont();
 layout();
 updateHud();
 render(performance.now());
-api.gameReady();
-requestAnimationFrame((now) => {
-	last = now;
-	startRound(true);
-	requestAnimationFrame(frame);
-});
+start(frame, () => startRound(true));
