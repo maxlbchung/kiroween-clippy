@@ -1,5 +1,5 @@
-// Chat: speech-bubble conversation with Clippy. The agent behind it is a stub
-// in the main process; this view handles streaming, history and polish.
+// Chat: speech-bubble conversation with Clippy. The agent in the main process
+// answers and can start Tasks; this view handles streaming, history and polish.
 
 import type {
 	ChatEvent,
@@ -7,9 +7,13 @@ import type {
 	RendererContext,
 } from "../../../shared/types.js";
 import { icon } from "../../common/icons.js";
-import { $, esc, reducedMotion, sfx } from "../../common/ui.js";
+import { $, api, esc, reducedMotion, sfx } from "../../common/ui.js";
 
-const SUGGESTIONS = ["What can you do?", "Tell me a joke", "Help me focus"];
+const SUGGESTIONS = [
+	"What can you do?",
+	"What am I looking at?",
+	"Show me how to save this",
+];
 
 // Survives panel close/re-open (the panel window stays alive).
 const state: {
@@ -18,6 +22,17 @@ const state: {
 	error: string | null;
 	draft: string;
 } = { messages: [], streamId: null, error: null, draft: "" };
+
+// Re-renders the mounted view; a no-op while the chat view is not shown.
+let refresh: () => void = () => {};
+
+// Task results arrive while the chat view may be unmounted, so they are
+// recorded at module level.
+api.onChatNote(({ text }) => {
+	if (!text) return;
+	state.messages.push({ role: "assistant", content: text });
+	refresh();
+});
 
 function format(text) {
 	// minimal, safe formatting: **bold**, `code`, line breaks
@@ -63,7 +78,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		return `
       <div class="chat-empty">
         <div class="chat-empty-title px">What can I help with?</div>
-        <p>I'm still learning to think for myself, but I'm all ears (well, eyebrows).</p>
+        <p>Ask me about what's on your screen, or have me show you how to do something.</p>
         <div class="chips">${SUGGESTIONS.map((s) => `<button class="btn btn-sm chip-btn" data-suggest="${esc(s)}">${esc(s)}</button>`).join("")}</div>
       </div>`;
 	}
@@ -221,6 +236,10 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	render();
 	autosize();
 	scrollDown(false);
+	refresh = () => {
+		render();
+		scrollDown();
+	};
 
 	return {
 		onEnter() {
@@ -231,6 +250,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		},
 		unmount() {
 			if (offChat) offChat();
+			refresh = () => {};
 		},
 	};
 }

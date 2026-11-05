@@ -354,9 +354,6 @@
 .direct-hint {
 	flex: 1;
 }
-.direct-hint .soon {
-	color: #8d8873;
-}
 .stop-sq {
 	width: 8px;
 	height: 8px;
@@ -887,10 +884,6 @@
 	gap: 5px;
 	align-items: center;
 	margin: 2px 0 0;
-}
-.soon-note {
-	margin: 4px 0 0;
-	font-style: italic;
 }
 .radios {
 	display: grid;

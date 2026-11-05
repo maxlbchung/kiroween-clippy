@@ -4,6 +4,8 @@ if (page.endsWith("/pet/index.html")) {
 	import("./pet/pet.js");
 } else if (page.endsWith("/panel/index.html")) {
 	import("./panel/panel.js");
+} else if (page.endsWith("/overlay/index.html")) {
+	import("./overlay/overlay.js");
 } else if (page.endsWith("/games/dodge/index.html")) {
 	import("./games/dodge/dodge.js");
 } else if (page.endsWith("/games/quiz/index.html")) {

@@ -23,10 +23,12 @@ export const DEFAULTS: SettingsData = {
 	},
 	wallet: { credits: 0, unlocked: [] },
 	ai: {
-		provider: "anthropic",
-		chatModel: "claude-sonnet-5-5",
-		directModel: "claude-haiku-5-5",
+		provider: "openai",
+		chatModel: "gpt-6.1-sol",
+		directModel: "gpt-6-luna",
 		baseUrl: "",
+		tips: true,
+		tipMinutes: 3,
 	},
 	voice: {
 		engine: "windows",

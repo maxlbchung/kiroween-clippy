@@ -1,5 +1,5 @@
 // Direct: push-to-talk quick actions. Captures a spoken command and hands it to
-// the (stubbed) action agent. No chat reply — Clippy just acknowledges.
+// the action agent, which carries it out as a Do_Mode Task.
 
 import type { RendererContext } from "../../../shared/types.js";
 import { icon } from "../../common/icons.js";
@@ -169,14 +169,13 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			sfx.error();
 			return;
 		}
-		await ctx.api.directDispatch(text);
+		const result = await ctx.api.directDispatch(text);
 		if (!alive) return;
-		setState(
-			"sent",
-			"Queued for Clippy's hands. <span class='soon'>(action agent coming soon)</span>",
-		);
+		if (result.status === "rejected") return fail(result.message);
+		setState("sent", "On it!");
 		sfx.select();
-		later(() => alive && ctx.close(), 2400);
+		// The main process hides this panel when the task starts.
+		later(() => alive && ctx.close(), 1200);
 	}
 
 	function fail(message) {

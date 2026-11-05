@@ -53,10 +53,17 @@ const api: ClippyAPI = {
 	onPanelAnchor: on("panel:anchor"),
 	onPanelFocus: on("panel:focus"),
 
-	// chat (agent is stubbed for now)
+	// chat
 	chatSend: (id, messages) => ipcRenderer.send("chat:send", { id, messages }),
 	chatCancel: (id) => ipcRenderer.send("chat:cancel", id),
 	onChat: on("chat:event"),
+	onChatNote: on("chat:note"),
+
+	// agent overlay
+	onOverlay: on("overlay:state"),
+	overlayEvent: (event) => ipcRenderer.send("overlay:event", event),
+	onLook: on("pet:look"),
+	onHush: on("pet:hush"),
 
 	// direct / dictation
 	dictationStart: () => ipcRenderer.invoke("dictation:start"),

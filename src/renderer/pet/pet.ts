@@ -305,6 +305,14 @@ let raf = 0;
 let lastT = 0;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
+// A point the agent wants Clippy to look at, in window coordinates.
+let lookAt: Point | null = null;
+api.onLook((p) => {
+	lookAt = p;
+	if (p) wake();
+	kick();
+});
+
 api.onCursor((p) => {
 	cursor = p;
 	lastCursorAt = performance.now();
@@ -334,6 +342,7 @@ function chooseGaze(now) {
 	const ext = mood.external;
 	if (mood.sleep) return gaze.lookDir(0, 0.3);
 	if (ext === "thinking") return gaze.lookDir(-0.75, -0.85);
+	if (lookAt) return gaze.lookAt(lookAt.x, lookAt.y);
 	if (ext === "listening") return gaze.lookDir(0, -0.15);
 	const tracking = settings.behavior.eyeTracking !== false;
 	if (tracking && cursor && now - lastCursorAt < 5000) {
@@ -479,6 +488,7 @@ function hideSay() {
 const pick = (v) =>
 	Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
 $(".say-close", sayEl).addEventListener("click", hideSay);
+api.onHush(hideSay);
 sayEl.addEventListener("click", (e) => {
 	if (e.target === sayEl || e.target === sayText) hideSay();
 });

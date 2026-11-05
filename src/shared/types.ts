@@ -36,6 +36,10 @@ export type AISettings = {
 	chatModel: string;
 	directModel: string;
 	baseUrl: string;
+	/** Proactive tips from the Watcher. */
+	tips: boolean;
+	/** Minimum minutes between two tips, 1 to 30. */
+	tipMinutes: number;
 };
 
 export type VoiceSettings = {
@@ -98,6 +102,40 @@ export type ChatEvent =
 	| { id: string; type: "delta"; text: string }
 	| { id: string; type: "done"; aborted?: boolean }
 	| { id: string; type: "error"; message: string };
+
+/** Result of a direct command: whether a Do_Mode Task started. */
+export type DirectResult =
+	| { status: "empty" }
+	| { status: "started" }
+	| { status: "rejected"; message: string };
+
+/** An Outline in overlay-window coordinates (DIP, relative to the display). */
+export type OverlayOutline = {
+	rect: Rect;
+	title: string;
+	step: { n: number; total: number } | null;
+	kind: "step" | "tip";
+	/** Where the title bar goes relative to the target. */
+	side: "above" | "below";
+};
+
+export type OverlayBubble = {
+	id: number;
+	text: string;
+	buttons: { id: string; label: string; primary?: boolean }[];
+	/** Clippy's body in overlay-window coordinates; the bubble sits above it. */
+	anchor: Rect;
+};
+
+export type OverlayState = {
+	outline: OverlayOutline | null;
+	bubble: OverlayBubble | null;
+};
+
+export type OverlayEvent =
+	| { kind: "outline"; button: "skip" | "close" }
+	| { kind: "bubble"; id: number; button: string }
+	| { kind: "hover"; id: number; on: boolean };
 
 export type Unsubscribe = () => void;
 
@@ -185,6 +223,14 @@ export interface ClippyAPI {
 	chatSend(id: string, messages: ChatMessage[]): void;
 	chatCancel(id: string): void;
 	onChat(callback: (event: ChatEvent) => void): Unsubscribe;
+	/** Messages the agent adds to the chat log, such as a Task's result. */
+	onChatNote(callback: (note: { text: string }) => void): Unsubscribe;
+	onOverlay(callback: (state: OverlayState) => void): Unsubscribe;
+	overlayEvent(event: OverlayEvent): void;
+	/** Points Clippy's gaze at a point in pet-window coordinates, or releases it. */
+	onLook(callback: (point: Point | null) => void): Unsubscribe;
+	/** Hides the pet window's own speech bubble. */
+	onHush(callback: () => void): Unsubscribe;
 	dictationStart(): Promise<{
 		ok: boolean;
 		engine: "openai" | "fake" | "windows";
@@ -195,9 +241,7 @@ export interface ClippyAPI {
 		audio: ArrayBuffer,
 		mime: string,
 	): Promise<{ ok: true; text: string } | { ok: false; error: string }>;
-	directDispatch(
-		text: string,
-	): Promise<{ status: "empty" | "queued"; agent?: false; model?: string }>;
+	directDispatch(text: string): Promise<DirectResult>;
 	onDictation(callback: (event: DictationEvent) => void): Unsubscribe;
 	onDirectToggle(callback: () => void): Unsubscribe;
 	launchGame(id: GameId): void;
