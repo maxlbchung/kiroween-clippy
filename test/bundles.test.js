@@ -5,6 +5,7 @@ import { readdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { GAME_IDS } from "../src/shared/games.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
@@ -14,7 +15,7 @@ const ESM_SPECIFIER =
 	/(?:^|\n)\s*import\s+(?:[^"';]+?from\s+)?["']([^"']+)["']/g;
 const CJS_SPECIFIER = /\brequire\(\s*["']([^"']+)["']\s*\)/g;
 const RELATIVE_SPECIFIER = /(?:\bfrom\s+|\brequire\(\s*)["']\.{1,2}\//;
-const PAGE_IMPORT = /import\(\s*["']\.{1,2}\/(?:pet|panel)\//;
+const PAGE_IMPORT = /import\(\s*["']\.{1,2}\/(?:pet|panel|games)\//;
 
 // Loads the build module with dist/ absent, so the first test can observe
 // that importing alone starts no build.
@@ -69,6 +70,13 @@ test("buildAll emits the flat layout and a CommonJS preload", async () => {
 		);
 		assert.match(html, /src="\/renderer\.js"/);
 	}
+	for (const id of GAME_IDS) {
+		const html = await readFile(
+			path.join(DIST, "renderer", "games", id, "index.html"),
+			"utf8",
+		);
+		assert.match(html, /src="\/renderer\.js"/, `${id} page`);
+	}
 });
 
 test("bundles stay self-contained apart from declared externals", async () => {
@@ -92,7 +100,20 @@ test("bundles stay self-contained apart from declared externals", async () => {
 	assert.deepEqual(cjsSpecifiers(bundles["renderer.js"]), []);
 });
 
-test("renderer bundle inlines both pages", async () => {
+test("the renderer entry routes every game page", async () => {
+	const entry = await readFile(
+		path.join(ROOT, "src", "renderer", "entry.ts"),
+		"utf8",
+	);
+	for (const id of GAME_IDS) {
+		assert.ok(
+			entry.includes(`"/games/${id}/index.html"`),
+			`entry.ts does not route ${id}`,
+		);
+	}
+});
+
+test("renderer bundle inlines every page", async () => {
 	const code = await read("renderer.js");
 	assert.match(code, /clippy-hit/, "pet page code missing");
 	assert.match(code, /arcade/, "panel page code missing");
@@ -101,7 +122,7 @@ test("renderer bundle inlines both pages", async () => {
 
 test("runtime paths the main process computes exist in dist", async () => {
 	assert.ok(existsSync(path.join(DIST, "preload.js")));
-	for (const page of ["pet", "panel"]) {
+	for (const page of ["pet", "panel", ...GAME_IDS.map((id) => `games/${id}`)]) {
 		assert.ok(
 			existsSync(path.join(DIST, "renderer", page, "index.html")),
 			`renderer/${page}/index.html missing`,
