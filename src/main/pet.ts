@@ -17,6 +17,7 @@ export class Pet extends EventEmitter {
 	win: BrowserWindow | null = null;
 	drag: { ox: number; oy: number } | null = null;
 	anim: ReturnType<typeof setInterval> | null = null;
+	animDone: (() => void) | null = null;
 	lastCursor: Point | null = null;
 	cursorTimer: ReturnType<typeof setInterval> | null = null;
 	dragTimer: ReturnType<typeof setInterval> | null = null;
@@ -180,26 +181,36 @@ export class Pet extends EventEmitter {
 	stopAnim() {
 		if (this.anim) clearInterval(this.anim);
 		this.anim = null;
+		const done = this.animDone;
+		this.animDone = null;
+		done?.();
 	}
 
-	animateTo(target: Point, ms = 280) {
-		if (!this.win) return;
+	/**
+	 * Glides to `target` over `ms`. Resolves when the move ends or another
+	 * move or drag interrupts it. With `persist`, saves the final position.
+	 */
+	animateTo(target: Point, ms = 280, persist = true): Promise<void> {
+		if (!this.win) return Promise.resolve();
 		this.stopAnim();
 		const from = this.win.getBounds();
-		if (from.x === target.x && from.y === target.y) return;
+		if (from.x === target.x && from.y === target.y) return Promise.resolve();
 		const t0 = Date.now();
-		this.anim = setInterval(() => {
-			const t = Math.min(1, (Date.now() - t0) / ms);
-			const k = easeOutCubic(t);
-			this.setPosition({
-				x: from.x + (target.x - from.x) * k,
-				y: from.y + (target.y - from.y) * k,
-			});
-			if (t >= 1) {
-				this.stopAnim();
-				this.savePosition();
-			}
-		}, FRAME_MS);
+		return new Promise((resolve) => {
+			this.animDone = resolve;
+			this.anim = setInterval(() => {
+				const t = Math.min(1, (Date.now() - t0) / ms);
+				const k = easeOutCubic(t);
+				this.setPosition({
+					x: from.x + (target.x - from.x) * k,
+					y: from.y + (target.y - from.y) * k,
+				});
+				if (t >= 1) {
+					this.stopAnim();
+					if (persist) this.savePosition();
+				}
+			}, FRAME_MS);
+		});
 	}
 
 	/** Nudge Clippy so the radial menu isn't cut off by the screen edge. */
