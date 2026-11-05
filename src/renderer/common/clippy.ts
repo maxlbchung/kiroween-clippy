@@ -162,6 +162,7 @@ export function createGaze(svg: SVGSVGElement) {
 	const pupils = [...svg.querySelectorAll(".c-pupil")];
 	const cur = { x: 0, y: 0 };
 	const target = { x: 0, y: 0 };
+	let shown = "";
 	return {
 		lookAt(px, py) {
 			const r = svg.getBoundingClientRect();
@@ -184,10 +185,12 @@ export function createGaze(svg: SVGSVGElement) {
 			const t = 1 - 0.0008 ** dt;
 			cur.x += (target.x - cur.x) * t;
 			cur.y += (target.y - cur.y) * t;
-			const tx = (cur.x * 6.2).toFixed(2);
-			const ty = (cur.y * 7.4).toFixed(2);
-			for (const p of pupils)
-				p.setAttribute("transform", `translate(${tx} ${ty})`);
+			const move = `translate(${(cur.x * 6.2).toFixed(2)} ${(cur.y * 7.4).toFixed(2)})`;
+			// Skips the DOM write once the pupils have settled.
+			if (move !== shown) {
+				shown = move;
+				for (const p of pupils) p.setAttribute("transform", move);
+			}
 			return Math.abs(target.x - cur.x) + Math.abs(target.y - cur.y) > 0.002;
 		},
 	};
