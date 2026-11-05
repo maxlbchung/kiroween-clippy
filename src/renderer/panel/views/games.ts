@@ -6,6 +6,13 @@ import { POINTS_PER_CREDIT } from "../../../shared/shop.js";
 import type { GameId, RendererContext } from "../../../shared/types.js";
 import { icon } from "../../common/icons.js";
 import { $, esc, sfx } from "../../common/ui.js";
+import {
+	FIRST_MILESTONE,
+	formatCount,
+	MILESTONE_CREDITS,
+	OFFLINE_CAP,
+} from "../../games/clicker/economy.js";
+import { loadFactory } from "../../games/clicker/save.js";
 import { ROUND_SIZE, TIME_LIMIT } from "../../games/quiz/trivia.js";
 import { formatScore, loadBest } from "../../games/score.js";
 import { HIDERS } from "../../games/seek/layout.js";
@@ -25,6 +32,8 @@ type TitleCard = {
 	tagline: string;
 	/** Rule lines as HTML. */
 	rules: string[];
+	/** The footer's record line. Defaults to the game's best score. */
+	record?: () => string;
 };
 
 /** Mounts a title card whose Play button launches the full-screen game. */
@@ -40,7 +49,7 @@ function titleCard(card: TitleCard) {
       ${card.rules.map((rule) => `<li>${rule}</li>`).join("")}
     </ul>
     <div class="game-foot">
-      <span class="game-best px">BEST ${formatScore(loadBest(card.id))}</span>
+      <span class="game-best px">${esc(card.record?.() ?? `BEST ${formatScore(loadBest(card.id))}`)}</span>
       <span class="game-credits px" title="Spend credits in the Wardrobe">${icon("coin", 16)}${ctx.settings.wallet.credits}</span>
       <button class="btn" data-act="back">Back</button>
       <button class="btn btn-primary" data-act="play">Play</button>
@@ -112,6 +121,24 @@ export const GAMES: Game[] = [
 				CREDIT_RULE,
 				PAUSE_RULE,
 			],
+		}),
+	},
+	{
+		id: "clicker",
+		name: "Clicker",
+		blurb: "Make clips!",
+		color: "#ffb224",
+		mount: titleCard({
+			id: "clicker",
+			title: "CLIPPY CLICKER",
+			tagline: "It looks like you're trying to make paperclips.",
+			rules: [
+				"Click the giant paper clip to make clips.",
+				`Spend clips on laborers and clip machines that make more for you, even while you're away (up to ${OFFLINE_CAP / 3600} hours).`,
+				`Milestones pay credits, starting with ${MILESTONE_CREDITS} at ${FIRST_MILESTONE} clips made.`,
+				"Your factory saves itself. Press <b>Esc</b> to pause.",
+			],
+			record: () => `MADE ${formatCount(loadFactory().total)}`,
 		}),
 	},
 ];
