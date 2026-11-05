@@ -87,6 +87,20 @@ export function clippyMarkup({
   </svg>`;
 }
 
+/** A bare paper clip in Clippy's wire and `finish`, with no face or costume. */
+export function paperclipMarkup(finish?: string | null, className = "") {
+	return `
+  <svg class="${className}" viewBox="54 30 92 230" xmlns="http://www.w3.org/2000/svg"
+       style="${finishVars(finish)}" aria-hidden="true">
+    <g class="c-wire">
+      <path class="c-wire-outline" d="${WIRE}"/>
+      <path class="c-wire-base" d="${WIRE}"/>
+      <path class="c-wire-shade" d="${WIRE}" transform="translate(1.7 1.9)"/>
+      <path class="c-wire-light" d="${WIRE}" transform="translate(-1.8 -1.7)"/>
+    </g>
+  </svg>`;
+}
+
 /**
  * Update an existing Clippy SVG to a new costume without re-creating it,
  * so idle animations keep running. Changed slots get a pop-in animation.
