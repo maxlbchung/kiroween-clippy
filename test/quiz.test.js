@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { QUESTIONS } from "../dist/renderer/games/quiz/questions.js";
+import { QUESTIONS } from "../src/renderer/games/quiz/questions.ts";
 import {
 	fiftyFifty,
 	newRound,
@@ -13,8 +13,8 @@ import {
 	shuffleOptions,
 	TIME_LIMIT,
 	TOPIC_LABELS,
-} from "../dist/renderer/games/quiz/trivia.js";
-import { seeded } from "../dist/renderer/games/random.js";
+} from "../src/renderer/games/quiz/trivia.ts";
+import { seeded } from "../src/renderer/games/random.ts";
 
 test("the bank has enough questions for varied rounds", () => {
 	assert.ok(QUESTIONS.length >= 4 * ROUND_SIZE);

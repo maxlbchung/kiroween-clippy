@@ -20,7 +20,7 @@ import {
 	produce,
 	rateOf,
 	unlocked,
-} from "../dist/renderer/games/clicker/economy.js";
+} from "../src/renderer/games/clicker/economy.ts";
 
 const [laborer, machine] = PRODUCERS;
 

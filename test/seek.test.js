@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { seeded } from "../dist/renderer/games/random.js";
+import { seeded } from "../src/renderer/games/random.ts";
 import {
 	chooseDecoys,
 	chooseSpots,
@@ -19,7 +19,7 @@ import {
 	poseFrame,
 	slotReachable,
 	spotRect,
-} from "../dist/renderer/games/seek/layout.js";
+} from "../src/renderer/games/seek/layout.ts";
 import {
 	EAGER_LIMIT,
 	FIND_POINTS,
@@ -27,7 +27,7 @@ import {
 	roundScore,
 	strayClick,
 	TIME_LIMIT,
-} from "../dist/renderer/games/seek/scoring.js";
+} from "../src/renderer/games/seek/scoring.ts";
 
 const VIEWS = [
 	{ w: 1024, h: 600 },
