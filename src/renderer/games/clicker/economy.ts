@@ -3,7 +3,7 @@
 // the page and the unit tests share it.
 
 export type Producer = {
-	/** Stable id, used in saves. */
+	/** Stable id, used in saves. The shop shows `art/<id>.svg` as its icon. */
 	id: string;
 	name: string;
 	plural: string;
@@ -124,7 +124,7 @@ export function click(f: Factory) {
 }
 
 /** Runs the producers for `seconds`. Returns the clips they made. */
-export function run(f: Factory, seconds: number) {
+export function produce(f: Factory, seconds: number) {
 	const made = rateOf(f) * Math.max(0, seconds);
 	make(f, made);
 	return made;
@@ -159,7 +159,7 @@ export function claimMilestones(f: Factory) {
  */
 export function catchUp(f: Factory, now: number) {
 	const away = Math.min(OFFLINE_CAP, Math.max(0, (now - f.savedAt) / 1000));
-	const made = run(f, away);
+	const made = produce(f, away);
 	f.savedAt = now;
 	return { made, away };
 }

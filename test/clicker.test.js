@@ -17,8 +17,8 @@ import {
 	OFFLINE_CAP,
 	PRODUCERS,
 	parseSave,
+	produce,
 	rateOf,
-	run,
 	unlocked,
 } from "../dist/renderer/games/clicker/economy.js";
 
@@ -79,7 +79,7 @@ test("clicks and producers both count toward lifetime clips", () => {
 	assert.equal(f.clicks, 1);
 	f.owned = { laborer: 2, machine: 1 };
 	assert.equal(rateOf(f), 2 * laborer.rate + machine.rate);
-	const made = run(f, 10);
+	const made = produce(f, 10);
 	assert.equal(made, rateOf(f) * 10);
 	assert.equal(f.total, CLICK_CLIPS + made);
 	f.clips = 0;
