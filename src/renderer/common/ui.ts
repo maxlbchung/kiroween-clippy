@@ -37,6 +37,11 @@ export const $$ = <T extends string>(
 	...root.querySelectorAll<ElementForSelector<T>>(sel),
 ];
 
+/** Sets `el`'s text, skipping the DOM write when it is unchanged. */
+export function setText(el: Element, text: string) {
+	if (el.textContent !== text) el.textContent = text;
+}
+
 export function esc(s: unknown) {
 	return String(s ?? "").replace(
 		/[&<>"']/g,

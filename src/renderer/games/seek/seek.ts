@@ -7,7 +7,7 @@
 
 import type { GameRoundReward } from "../../../shared/types.js";
 import { blink, clippyMarkup, createGaze } from "../../common/clippy.js";
-import { $, esc, reducedMotion, sfx, tone } from "../../common/ui.js";
+import { $, esc, reducedMotion, setText, sfx, tone } from "../../common/ui.js";
 import {
 	clamp,
 	flyTo,
@@ -548,10 +548,6 @@ function points(won = false) {
 	if (!r) return 0;
 	return roundScore({ ...r, timeLeft: limit - r.elapsed, won });
 }
-
-const setText = (el: HTMLElement, text: string) => {
-	if (el.textContent !== text) el.textContent = text;
-};
 
 function updateHud() {
 	const r = round;
