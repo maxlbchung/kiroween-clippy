@@ -19,11 +19,14 @@ import type {
 	DictationEvent,
 	GameId,
 	GameResult,
+	OverlayEvent,
 	PanelName,
 	SettingsPatch,
 } from "../shared/types.js";
-import { createAgent } from "./agent.js";
+import { type Agent, createAgent } from "./agent/agent.js";
 import { Arcade } from "./arcade.js";
+import { DesktopHost, DesktopScreen } from "./desktop.js";
+import { Overlay } from "./overlay.js";
 import { Panels } from "./panels.js";
 import { Pet } from "./pet.js";
 import { Settings } from "./settings.js";
@@ -85,7 +88,9 @@ let settings: Settings | undefined;
 let pet: Pet | undefined;
 let panels: Panels | undefined;
 let arcade: Arcade | undefined;
-let agent: ReturnType<typeof createAgent> | undefined;
+let agent: Agent | undefined;
+let desktop: DesktopHost | undefined;
+let overlay: Overlay | undefined;
 let speech: { windows: WindowsSpeech; fake?: FakeSpeech } | undefined;
 let trayCtl: ReturnType<typeof createTray> | undefined;
 let quitting = false;
@@ -145,6 +150,7 @@ async function quitWithGoodbye() {
 	if (quitting) return;
 	quitting = true;
 	arcade?.close();
+	agent?.dispose();
 	await panels?.close();
 	pet?.send("pet:goodbye");
 	setTimeout(() => app.quit(), 520);
@@ -240,7 +246,7 @@ function wireIpc() {
 		),
 	);
 
-	// chat (stub agent, real streaming contract)
+	// chat
 	ipcMain.on(
 		"chat:send",
 		async (e, { id, messages }: { id: string; messages: ChatMessage[] }) => {
@@ -250,6 +256,7 @@ function wireIpc() {
 				!e.sender.isDestroyed() && e.sender.send("chat:event", { id, ...evt });
 			pet?.send("pet:mood", "thinking");
 			let talking = false;
+			let task: { goal: string; mode: "guide" | "do" } | null = null;
 			try {
 				const clean = (Array.isArray(messages) ? messages : [])
 					.filter((m) => m && (m.role === "user" || m.role === "assistant"))
@@ -259,13 +266,17 @@ function wireIpc() {
 					}));
 				const chatAgent = agent;
 				if (!chatAgent) throw new Error("Chat agent is not initialized");
-				for await (const chunk of chatAgent.chat(clean, ctrl.signal)) {
-					if (!talking) {
-						talking = true;
-						pet?.send("pet:mood", "talking");
-					}
-					send({ type: "delta", text: chunk });
-				}
+				const result = await chatAgent.chat(clean, {
+					signal: ctrl.signal,
+					onText: (chunk) => {
+						if (!talking) {
+							talking = true;
+							pet?.send("pet:mood", "talking");
+						}
+						send({ type: "delta", text: chunk });
+					},
+				});
+				task = result.task;
 				send({ type: "done" });
 			} catch (err) {
 				send(
@@ -280,6 +291,8 @@ function wireIpc() {
 				chats.delete(id);
 				pet?.send("pet:mood", null);
 			}
+			if (task && !ctrl.signal.aborted)
+				void agent?.startTask(task.goal, task.mode, "chat");
 		},
 	);
 	ipcMain.on("chat:cancel", (_e, id: string) => chats.get(id)?.abort());
@@ -323,10 +336,16 @@ function wireIpc() {
 		},
 	);
 	ipcMain.handle("direct:dispatch", async (_e, text: string) => {
-		pet?.send("pet:mood", "happy");
-		setTimeout(() => pet?.send("pet:mood", null), 1400);
-		return agent?.direct(text);
+		const result = await agent?.direct(text);
+		if (result?.status === "started") {
+			pet?.send("pet:mood", "happy");
+			setTimeout(() => pet?.send("pet:mood", null), 1400);
+		}
+		return result ?? { status: "rejected", message: "Clippy isn't ready yet." };
 	});
+
+	// agent overlay
+	ipcMain.on("overlay:event", (_e, evt: OverlayEvent) => overlay?.handle(evt));
 
 	// app
 	ipcMain.handle("app:info", () => ({
@@ -378,6 +397,7 @@ function onSettingsChange(
 		pet?.applyScale();
 		panels?.follow();
 	}
+	if (patch.ai) agent?.applySettings();
 	if (
 		patch.voice &&
 		(data.voice.language !== prev.voice.language ||
@@ -406,7 +426,6 @@ app.whenReady().then(async () => {
 
 	settings = await new Settings(app.getPath("userData")).init();
 	keepWornItems(settings);
-	agent = createAgent({ settings });
 	speech = { windows: new WindowsSpeech(NATIVE) };
 	speech?.windows.on("event", relayDictation);
 
@@ -432,6 +451,21 @@ app.whenReady().then(async () => {
 	panels.create();
 	pet?.on("moved", () => panels?.follow());
 
+	desktop = new DesktopHost(NATIVE);
+	overlay = new Overlay({
+		preload: PRELOAD,
+		url: `${APP_ORIGIN}/renderer/overlay/index.html`,
+	});
+	agent = createAgent({
+		settings,
+		screen: new DesktopScreen(desktop, () => BrowserWindow.getAllWindows()),
+		host: desktop,
+		overlay,
+		pet,
+		panels,
+		isPlaying: () => !!arcade?.playing,
+	});
+
 	trayCtl = createTray({
 		iconDir: ICONS,
 		pet,
@@ -447,6 +481,10 @@ app.whenReady().then(async () => {
 	// Warm the offline recognizer so the first "Direct" is instant.
 	if (settings.data.voice.engine === "windows")
 		setTimeout(() => speech?.windows.warm(settings?.data.voice.language), 2500);
+	// Start the desktop host early: it compiles on launch and reports
+	// foreground changes for tips.
+	if (desktop.supported)
+		setTimeout(() => void desktop?.start().catch(() => {}), 4000);
 });
 
 // Never let renderers open new windows or navigate away.
@@ -471,5 +509,7 @@ app.on("will-quit", () => {
 	globalShortcut.unregisterAll();
 	speech?.windows.dispose();
 	speech?.fake?.dispose();
+	desktop?.dispose();
+	overlay?.dispose();
 	settings?.flush();
 });

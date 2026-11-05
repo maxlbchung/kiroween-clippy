@@ -8,37 +8,41 @@ import { $, $$, esc, sfx } from "../../common/ui.js";
 
 const PROVIDERS = [
 	{
-		id: "anthropic",
-		name: "Anthropic (Claude)",
-		secret: "anthropic",
-		keyLabel: "Anthropic",
-		keyHint: "sk-ant-…",
-	},
-	{
 		id: "openai",
 		name: "OpenAI",
 		secret: "openai",
 		keyLabel: "OpenAI",
 		keyHint: "sk-…",
+		models: { chat: "gpt-6.1-sol", fast: "gpt-6-luna" },
+	},
+	{
+		id: "anthropic",
+		name: "Anthropic (Claude)",
+		secret: "anthropic",
+		keyLabel: "Anthropic",
+		keyHint: "sk-ant-…",
+		models: { chat: "claude-sonnet-5-5", fast: "claude-haiku-5-5" },
 	},
 	{
 		id: "compatible",
-		name: "OpenAI-compatible",
+		name: "OpenAI-compatible (Responses API)",
 		secret: "custom",
 		keyLabel: "Compatible endpoint",
 		keyHint: "key",
+		models: null,
 	},
 ];
 const MODEL_SUGGESTIONS = {
+	openai: ["gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-6-astra"],
 	anthropic: [
-		"claude-opus-5-5",
 		"claude-sonnet-5-5",
 		"claude-haiku-5-5",
+		"claude-opus-5-5",
 		"claude-fable-5-1",
 	],
-	openai: [],
 	compatible: [],
 };
+const TIP_MINUTES = { min: 1, max: 30 };
 const LANGUAGES = [
 	["auto", "Match Windows"],
 	["en-US", "English (US)"],
@@ -171,12 +175,12 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
           <input id="baseUrl" class="field mono" data-path="ai.baseUrl" placeholder="https://my-gateway.example/v1" value="${esc(s.ai.baseUrl)}">`
 						: ""
 				}
-        <label class="label" for="chatModel">Chat model</label>
+        <label class="label" for="chatModel">Main model</label>
         <div><input id="chatModel" class="field mono" list="models" data-path="ai.chatModel" value="${esc(s.ai.chatModel)}">
-          <div class="hint">"System 2" — thoughtful replies in the chat bubble.</div></div>
-        <label class="label" for="directModel">Direct model</label>
+          <div class="hint">Chat, guides and tasks you start from chat, and writing tips.</div></div>
+        <label class="label" for="directModel">Fast model</label>
         <div><input id="directModel" class="field mono" list="models" data-path="ai.directModel" value="${esc(s.ai.directModel)}">
-          <div class="hint">"System 1" — fast model that drives your PC via UI Automation.</div></div>
+          <div class="hint">Voice commands, and deciding when a tip is worth showing.</div></div>
       </div>
       <datalist id="models">${sugg.map((m) => `<option value="${m}">`).join("")}</datalist>
       <fieldset class="group">
@@ -184,7 +188,14 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
         ${keyRow(prov.secret, prov.keyLabel, s.secrets[prov.secret], prov.keyHint)}
         <p class="hint key-note">${icon("lock", 12)} ${s.encryption ? `Keys are encrypted ${ctx.api.platform === "win32" ? "with Windows DPAPI" : "by your OS keychain"} and stay on this PC.` : "OS encryption unavailable — keys are stored locally without encryption."}</p>
       </fieldset>
-      <p class="hint soon-note">The agents themselves are still being built — Clippy will use these once they land.</p>`;
+      <fieldset class="group">
+        <legend>Tips</legend>
+        <label class="check"><input type="checkbox" data-path="ai.tips" ${s.ai.tips !== false ? "checked" : ""}> <span>Offer tips on my own<br><span class="hint">I glance at your screen when you switch windows, hit an error dialog or seem stuck.</span></span></label>
+        <div class="form-grid">
+          <label class="label" for="tipMinutes">At most one tip every</label>
+          <div><input id="tipMinutes" class="field" type="number" min="${TIP_MINUTES.min}" max="${TIP_MINUTES.max}" step="1" data-path="ai.tipMinutes" value="${esc(s.ai.tipMinutes)}"> <span class="hint">minutes</span></div>
+        </div>
+      </fieldset>`;
 	}
 
 	function renderVoice(s) {
@@ -329,6 +340,32 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		}
 		const path = t.dataset.path;
 		if (!path) return;
+		if (path === "ai.tipMinutes") {
+			const n = Number(t.value);
+			if (!Number.isInteger(n) || n < TIP_MINUTES.min || n > TIP_MINUTES.max) {
+				t.value = String(ctx.settings.ai.tipMinutes);
+				sfx.error();
+				return;
+			}
+			void patch({ ai: { tipMinutes: n } }, "Saved");
+			return;
+		}
+		if (path === "ai.provider") {
+			const prov = PROVIDERS.find((p) => p.id === t.value);
+			if (!prov) return;
+			void patch(
+				{
+					ai: {
+						provider: prov.id as "openai" | "anthropic" | "compatible",
+						...(prov.models
+							? { chatModel: prov.models.chat, directModel: prov.models.fast }
+							: {}),
+					},
+				},
+				"Saved",
+			);
+			return;
+		}
 		const value = t.type === "checkbox" ? t.checked : t.value.trim();
 		void patch(pathPatch(path, value), "Saved");
 		if (t.type === "checkbox") sfx.hover();
