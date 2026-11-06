@@ -23,7 +23,7 @@ import * as games from "./views/games.js";
 import * as settingsView from "./views/settings.js";
 
 const VIEWS = { chat, direct, customize, games, settings: settingsView };
-const TITLE_ICONS = {
+const TITLE_ICONS: Partial<Record<PanelName, string>> = {
 	customize: "customize",
 	games: "games",
 	settings: "settings",

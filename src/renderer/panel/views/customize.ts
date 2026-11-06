@@ -5,6 +5,7 @@ import { owns, priceOf } from "../../../shared/shop.js";
 import type {
 	Costume,
 	CostumeCategory,
+	PublicSettings,
 	RendererContext,
 	WalletSettings,
 } from "../../../shared/types.js";
@@ -28,7 +29,7 @@ import {
 import { icon } from "../../common/icons.js";
 import { $, $$, esc, reducedMotion, sfx } from "../../common/ui.js";
 
-let lastTab = "hat";
+let lastTab: CostumeCategory = "hat";
 let uidSeq = 0;
 
 function ghost() {
@@ -38,7 +39,7 @@ function ghost() {
     <ellipse cx="${EYES.r.x}" cy="${EYES.r.y}" rx="${EYES.r.rx}" ry="${EYES.r.ry}" fill="#fff" stroke="#17171c" stroke-opacity=".18" stroke-width="2"/>`;
 }
 
-function thumb(category, id) {
+function thumb(category: (typeof CATEGORIES)[number], id: string | null) {
 	if (!id) return icon("none", 30);
 	if (category.id === "finish")
 		return `<svg viewBox="${category.thumb}" class="thumb-svg">${finishSwatch(id)}</svg>`;
@@ -51,7 +52,7 @@ function thumb(category, id) {
 	return `<svg viewBox="${category.thumb}" class="thumb-svg" overflow="hidden">${back}${ghost()}${front}</svg>`;
 }
 
-function outfitTitle(c) {
+function outfitTitle(c: Costume) {
 	const worn = CATEGORIES.filter((cat) => cat.id !== "finish" && c[cat.id]).map(
 		(cat) => ITEM_BY_ID[c[cat.id]]?.name,
 	);
@@ -62,7 +63,7 @@ function outfitTitle(c) {
 	return worn.join(" · ");
 }
 
-function stars(c) {
+function stars(c: Costume) {
 	const n = CATEGORIES.filter((cat) =>
 		cat.id === "finish" ? c.finish && c.finish !== "silver" : c[cat.id],
 	).length;
@@ -146,12 +147,14 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			short > 0 ? `Need ${short} more credits` : "Trying on. Buy to keep it!";
 	}
 
-	function renderGrid(animate) {
+	function renderGrid(animate: boolean) {
 		const cat = CATEGORIES.find((c) => c.id === tab);
 		if (!cat) return;
 		const items = itemsFor(tab as CostumeCategory);
 		const options =
-			cat.id === "finish" ? items : [{ id: null, name: "None" }, ...items];
+			cat.id === "finish"
+				? items
+				: [{ id: null as string | null, name: "None" }, ...items];
 		grid.innerHTML = options
 			.map((it) => {
 				const selected = (costume[cat.id] ?? null) === it.id;
@@ -189,7 +192,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		}
 	}
 
-	function equip(next, { random = false } = {}) {
+	function equip(next: Partial<Costume>, { random = false } = {}) {
 		preview = null;
 		costume = { ...EMPTY_COSTUME, ...next };
 		draw(!reducedMotion());
@@ -218,7 +221,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	}
 
 	function randomCostume() {
-		const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+		const pick = <T>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 		const next: Costume = { ...EMPTY_COSTUME };
 		for (const c of CATEGORIES) {
 			const ids = itemsFor(c.id)
@@ -338,7 +341,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		onEnter() {
 			renderGrid(true);
 		},
-		onSettings(s) {
+		onSettings(s: PublicSettings) {
 			const walletChanged = JSON.stringify(s.wallet) !== JSON.stringify(wallet);
 			const costumeChanged =
 				JSON.stringify(s.costume) !== JSON.stringify(costume);

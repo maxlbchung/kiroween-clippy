@@ -84,7 +84,7 @@ function renderMood() {
 	kick();
 }
 
-function flash(m, ms = 900) {
+function flash(m: string, ms = 900) {
 	mood.flash = m;
 	clearTimeout(flashTimer);
 	flashTimer = setTimeout(() => {
@@ -145,7 +145,7 @@ MENU.forEach((item, i) => {
 });
 const ringButtons = $$(".ring-btn", ring);
 
-function showCaption(text) {
+function showCaption(text: string) {
 	caption.textContent = text;
 	caption.classList.add("show");
 }
@@ -338,7 +338,7 @@ function kick() {
 	}
 }
 
-function chooseGaze(now) {
+function chooseGaze(now: number) {
 	const ext = mood.external;
 	if (mood.sleep) return gaze.lookDir(0, 0.3);
 	if (ext === "thinking") return gaze.lookDir(-0.75, -0.85);
@@ -362,7 +362,7 @@ function chooseGaze(now) {
 	return gaze.lookDir(wander.x, wander.y);
 }
 
-function frame(now) {
+function frame(now: number) {
 	const dt = Math.min(0.05, (now - lastT) / 1000);
 	lastT = now;
 
@@ -435,7 +435,7 @@ function wake(startle = false) {
 }
 
 // ---------------------------------------------------------------- speech bubble
-const LINES = {
+const LINES: Record<string, string | string[]> = {
 	intro: "Hi! I'm Clippy. Drag me anywhere, or click me to see what I can do.",
 	hello: [
 		"Hi again! Click me if you need anything.",
@@ -456,7 +456,7 @@ let sayTimer: ReturnType<typeof setTimeout> | null = null;
 let typeTimer: ReturnType<typeof setInterval> | null = null;
 let lastSayAt = performance.now();
 
-function say(text, ms = 6500) {
+function say(text: string, ms = 6500) {
 	if (menuOpen) return;
 	clearTimeout(sayTimer);
 	clearInterval(typeTimer);
@@ -485,7 +485,7 @@ function hideSay() {
 	sayEl.classList.remove("show");
 }
 
-const pick = (v) =>
+const pick = (v: string | string[]) =>
 	Array.isArray(v) ? v[Math.floor(Math.random() * v.length)] : v;
 $(".say-close", sayEl).addEventListener("click", hideSay);
 api.onHush(hideSay);

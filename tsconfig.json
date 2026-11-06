@@ -13,7 +13,7 @@
 		"strict": true,
 		"strictNullChecks": false,
 		"useUnknownInCatchVariables": false,
-		"noImplicitAny": false
+		"noImplicitAny": true
 	},
 	"include": ["src/**/*.ts", "src/**/*.cts"]
 }

@@ -1,12 +1,24 @@
 // Settings: AI keys & models, voice, behaviour, about/quit.
 
 import { PET_SCALES } from "../../../shared/layout.js";
-import type { RendererContext } from "../../../shared/types.js";
+import type {
+	AISettings,
+	PublicSettings,
+	RendererContext,
+	SettingsPatch,
+} from "../../../shared/types.js";
 import { clippyMarkup } from "../../common/clippy.js";
 import { icon } from "../../common/icons.js";
 import { $, $$, esc, sfx } from "../../common/ui.js";
 
-const PROVIDERS = [
+const PROVIDERS: {
+	id: AISettings["provider"];
+	name: string;
+	secret: keyof PublicSettings["secrets"];
+	keyLabel: string;
+	keyHint: string;
+	models: { chat: string; fast: string } | null;
+}[] = [
 	{
 		id: "openai",
 		name: "OpenAI",
@@ -32,7 +44,7 @@ const PROVIDERS = [
 		models: null,
 	},
 ];
-const MODEL_SUGGESTIONS = {
+const MODEL_SUGGESTIONS: Record<AISettings["provider"], string[]> = {
 	openai: ["gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna", "gpt-6-astra"],
 	anthropic: [
 		"claude-sonnet-5-5",
@@ -64,7 +76,12 @@ const TABS = [
 
 let lastTab = "ai";
 
-function keyRow(name, label, isSet, placeholder) {
+function keyRow(
+	name: string,
+	label: string,
+	isSet: boolean,
+	placeholder: string,
+) {
 	return `
     <div class="key-row" data-secret="${name}">
       <label class="label" for="key-${name}">${label}</label>
@@ -78,20 +95,20 @@ function keyRow(name, label, isSet, placeholder) {
     </div>`;
 }
 
-function accelFromEvent(e) {
-	const mods = [];
+function accelFromEvent(e: KeyboardEvent) {
+	const mods: string[] = [];
 	if (e.ctrlKey) mods.push("Control");
 	if (e.altKey) mods.push("Alt");
 	if (e.shiftKey) mods.push("Shift");
 	if (e.metaKey) mods.push("Super");
 	const code = e.code;
-	let key = null;
+	let key: string | null = null;
 	if (/^Key[A-Z]$/.test(code)) key = code.slice(3);
 	else if (/^Digit\d$/.test(code)) key = code.slice(5);
 	else if (/^F\d{1,2}$/.test(code)) key = code;
 	else
 		key =
-			{
+			(<Record<string, string>>{
 				Space: "Space",
 				Enter: "Enter",
 				Backquote: "`",
@@ -114,12 +131,12 @@ function accelFromEvent(e) {
 				PageUp: "PageUp",
 				PageDown: "PageDown",
 				Insert: "Insert",
-			}[code] || null;
+			})[code] || null;
 	if (!key) return null;
 	return [...mods, key].join("+");
 }
 
-const prettyAccel = (a) =>
+const prettyAccel = (a: string | null) =>
 	(a || "None").replace(/Control/g, "Ctrl").replace(/\+/g, " + ");
 
 export function mount(el: HTMLElement, ctx: RendererContext) {
@@ -153,13 +170,13 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		toastTimer = setTimeout(() => toast.classList.remove("show"), 1600);
 	}
 
-	async function patch(p, msg) {
+	async function patch(p: SettingsPatch, msg?: string) {
 		await ctx.api.patchSettings(p);
 		saved(msg);
 	}
 
 	// ---------------------------------------------------------------- tabs
-	function renderAi(s) {
+	function renderAi(s: PublicSettings) {
 		const prov = PROVIDERS.find((p) => p.id === s.ai.provider) || PROVIDERS[0];
 		const sugg = MODEL_SUGGESTIONS[prov.id];
 		return `
@@ -198,7 +215,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
       </fieldset>`;
 	}
 
-	function renderVoice(s) {
+	function renderVoice(s: PublicSettings) {
 		const v = s.voice;
 		return `
       <div class="label">Dictation engine</div>
@@ -244,11 +261,15 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
       </div>`;
 	}
 
-	function renderGeneral(s) {
+	function renderGeneral(s: PublicSettings) {
 		const b = s.behavior;
-		const check = (path, label, on, hint = "") =>
+		const check = (path: string, label: string, on: boolean, hint = "") =>
 			`<label class="check"><input type="checkbox" data-path="${path}" ${on ? "checked" : ""}> <span>${label}${hint ? `<br><span class="hint">${hint}</span>` : ""}</span></label>`;
-		const sizeNames = { 0.8: "Small", 1: "Normal", 1.25: "Large" };
+		const sizeNames: Record<number, string> = {
+			0.8: "Small",
+			1: "Normal",
+			1.25: "Large",
+		};
 		return `
       <div class="label">Clippy size</div>
       <div class="seg" role="radiogroup">
@@ -264,7 +285,10 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
       </fieldset>`;
 	}
 
-	function renderAbout(s, info) {
+	function renderAbout(
+		s: PublicSettings,
+		info: Awaited<ReturnType<typeof ctx.api.appInfo>> | null,
+	) {
 		return `
       <div class="about">
         <div class="about-hero">
@@ -304,12 +328,14 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			t.setAttribute("aria-selected", String(t.dataset.tab === tab));
 		});
 		stopMic();
-		const html = {
-			ai: renderAi,
-			voice: renderVoice,
-			general: renderGeneral,
-			about: renderAbout,
-		}[tab](s, info);
+		const views: Record<string, (s: PublicSettings, i: typeof info) => string> =
+			{
+				ai: renderAi,
+				voice: renderVoice,
+				general: renderGeneral,
+				about: renderAbout,
+			};
+		const html = views[tab](s, info);
 		panel.innerHTML = `<div class="settings-page">${html}</div>`;
 		if (focusId) document.getElementById(focusId)?.focus();
 		if (animate) {
@@ -324,7 +350,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	}
 
 	// ---------------------------------------------------------------- events
-	const pathPatch = (path, value) => {
+	const pathPatch = (path: string, value: unknown): SettingsPatch => {
 		const [a, b] = path.split(".");
 		return { [a]: { [b]: value } };
 	};
@@ -407,19 +433,22 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		true,
 	);
 
-	function stopHotkeyCapture(btn) {
+	function stopHotkeyCapture(btn: HTMLElement) {
 		btn.classList.remove("listening");
 		btn.textContent = prettyAccel(ctx.settings.voice.hotkey);
 	}
 
-	async function saveKey(row) {
+	async function saveKey(row: HTMLElement) {
 		const input = $("input", row) as HTMLInputElement;
 		const v = input.value.trim();
 		if (!v) {
 			input.focus();
 			return;
 		}
-		await ctx.api.setSecret(row.dataset.secret, v);
+		await ctx.api.setSecret(
+			row.dataset.secret as keyof PublicSettings["secrets"],
+			v,
+		);
 		input.value = "";
 		render(); // onSettings skips this while the field has focus (Enter to save)
 		saved("Key saved");

@@ -178,7 +178,7 @@ export function createGaze(svg: SVGSVGElement) {
 	const target = { x: 0, y: 0 };
 	let shown = "";
 	return {
-		lookAt(px, py) {
+		lookAt(px: number, py: number) {
 			const r = svg.getBoundingClientRect();
 			const k = r.width / VIEWBOX.w;
 			const ex = r.left + ((EYES.l.x + EYES.r.x) / 2 - VIEWBOX.x) * k;
@@ -190,7 +190,7 @@ export function createGaze(svg: SVGSVGElement) {
 			target.x = (dx / d) * reach;
 			target.y = (dy / d) * reach;
 		},
-		lookDir(dx, dy) {
+		lookDir(dx: number, dy: number) {
 			target.x = Math.max(-1, Math.min(1, dx));
 			target.y = Math.max(-1, Math.min(1, dy));
 		},
