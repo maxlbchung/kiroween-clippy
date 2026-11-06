@@ -1,0 +1,97 @@
+/* Dodge: full-screen overlay where Clippy attacks the cursor. */
+
+#world {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+}
+#world canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+#wins {
+	position: absolute;
+	inset: 0;
+}
+
+/* Clippy's attack states */
+#clippy.charging .clippy {
+	filter: drop-shadow(0 0 calc(var(--charge, 0) * 16px) #ff8a1f);
+}
+#clippy.dashing .bob {
+	animation: none;
+}
+#clippy.dashing .clippy {
+	filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.85));
+}
+#clippy.mood-angry .c-brow-l {
+	transform: translateY(6px) rotate(16deg);
+}
+#clippy.mood-angry .c-brow-r {
+	transform: translateY(6px) rotate(-16deg);
+}
+#clippy.laser .c-sclera {
+	fill: #ff4d40;
+	stroke: #4a0000;
+}
+#clippy.laser .c-iris {
+	fill: #fff4c8;
+}
+#clippy.laser .c-glint {
+	opacity: 0;
+}
+#clippy.laser .clippy {
+	filter: drop-shadow(0 0 8px rgba(255, 59, 48, 0.8));
+}
+
+/* Flying dialog boxes */
+.fw {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 236px;
+	padding: 3px;
+	will-change: transform;
+	transform-origin: 50% 50%;
+}
+.fw .titlebar {
+	height: 22px;
+}
+.fw .titlebar-text {
+	font-size: 13px;
+}
+.fw .icon-btn {
+	width: 18px;
+	height: 16px;
+	color: var(--ink);
+}
+.fw.armed .titlebar {
+	animation: fw-armed 0.16s steps(1) infinite;
+}
+@keyframes fw-armed {
+	50% {
+		background: linear-gradient(90deg, #7a0b0b, #e5484d);
+	}
+}
+.fw-body {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 10px 8px 8px;
+}
+.fw-body p {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.35;
+}
+.fw-btns {
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+	padding: 0 8px 7px;
+}
+.fw-btns .btn {
+	min-width: 56px;
+}

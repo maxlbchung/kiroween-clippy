@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="170" viewBox="0 0 260 170">
+	<title>A crayon drawing of a house, a tree, the sun and a stick figure</title>
+	<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+		<circle cx="220" cy="34" r="16" stroke="#ffb224" stroke-width="4"/>
+		<path d="M220 8 V2 M244 34 H252 M238 16 L244 10 M238 52 L244 58 M196 34 H188 M202 16 L196 10" stroke="#ffb224" stroke-width="3"/>
+		<path d="M24 30 Q34 18 46 28 Q56 16 68 28 Q78 26 76 36 Q70 44 58 40 Q46 48 36 40 Q22 44 24 30 Z" stroke="#2f7cf6" stroke-width="3"/>
+		<path d="M40 150 V92 H116 V150" stroke="#e5484d" stroke-width="4"/>
+		<path d="M32 96 L78 56 L124 96" stroke="#8e4ec6" stroke-width="4"/>
+		<path d="M68 150 V120 H88 V150" stroke="#6b4423" stroke-width="3"/>
+		<path d="M50 104 H64 V116 H50 Z M94 104 H108 V116 H94 Z" stroke="#2f7cf6" stroke-width="3"/>
+		<path d="M150 150 V112" stroke="#6b4423" stroke-width="6"/>
+		<path d="M150 116 Q126 112 132 92 Q128 72 150 70 Q172 70 170 92 Q176 112 150 116 Z" stroke="#30a46c" stroke-width="4"/>
+		<circle cx="196" cy="98" r="9" stroke="#17171c" stroke-width="3"/>
+		<path d="M196 107 V132 M196 132 L186 150 M196 132 L206 150 M196 114 L182 124 M196 114 L212 104" stroke="#17171c" stroke-width="3"/>
+		<path d="M4 156 Q20 150 36 156 T68 156 T100 156 T132 156 T164 156 T196 156 T228 156 T256 156" stroke="#30a46c" stroke-width="4"/>
+	</g>
+	<circle cx="140" cy="88" r="3" fill="#e5484d"/>
+	<circle cx="158" cy="98" r="3" fill="#e5484d"/>
+	<circle cx="150" cy="82" r="3" fill="#e5484d"/>
+</svg>

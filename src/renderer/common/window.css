@@ -1,0 +1,139 @@
+/* Retro Win9x window frame shared by the panel and full-screen game windows. */
+.frame-window {
+	background: var(--face);
+	box-shadow:
+		var(--bevel-out),
+		4px 5px 0 rgba(23, 23, 28, 0.22),
+		0 14px 30px rgba(0, 0, 0, 0.25);
+	padding: 3px;
+	display: flex;
+	flex-direction: column;
+}
+.titlebar {
+	position: relative;
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	height: 26px;
+	padding: 0 3px 0 5px;
+	background: linear-gradient(90deg, var(--title-a), var(--title-b));
+	color: #fff;
+	overflow: hidden;
+}
+.titlebar::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: repeating-linear-gradient(
+		0deg,
+		rgba(255, 255, 255, 0.07) 0 1px,
+		transparent 1px 3px
+	);
+}
+.titlebar::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 60px;
+	left: -80px;
+	pointer-events: none;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(255, 255, 255, 0.28),
+		transparent
+	);
+	transform: skewX(-20deg);
+}
+.frame-window.entered .titlebar::after {
+	animation: shine 1.1s 0.25s var(--ease-out) both;
+}
+@keyframes shine {
+	to {
+		left: calc(100% + 40px);
+	}
+}
+.titlebar .px-icon {
+	filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.4));
+}
+.titlebar-text {
+	flex: 1;
+	font: 700 14px var(--font-px);
+	letter-spacing: 0.04em;
+	text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+	white-space: nowrap;
+}
+.titlebar .icon-btn {
+	width: 20px;
+	height: 18px;
+	color: var(--ink);
+	font-size: 14px;
+	line-height: 1;
+}
+.win-body {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	padding: 8px 6px 6px;
+	display: flex;
+	flex-direction: column;
+}
+
+/* close-button glyph */
+.x-glyph {
+	width: 8px;
+	height: 8px;
+	display: block;
+	background:
+		linear-gradient(
+			45deg,
+			transparent 43%,
+			currentColor 43% 57%,
+			transparent 57%
+		),
+		linear-gradient(
+			-45deg,
+			transparent 43%,
+			currentColor 43% 57%,
+			transparent 57%
+		);
+}
+
+/* Arcade marquee: a purple sign with chasing lights. */
+.marquee {
+	position: relative;
+	padding: 12px 10px 10px;
+	text-align: center;
+	color: #fff;
+	background: linear-gradient(#2a1458, #5a1f7c);
+	box-shadow: var(--bevel-in);
+	overflow: hidden;
+}
+.marquee-lights {
+	position: absolute;
+	inset: 3px;
+	pointer-events: none;
+	border: 5px dotted #ffd23f;
+	animation: chase 0.7s steps(1) infinite;
+}
+@keyframes chase {
+	50% {
+		border-color: #ff8a1f;
+	}
+}
+.marquee-title {
+	font-size: 24px;
+	letter-spacing: 0.12em;
+	color: #ffd23f;
+	text-shadow:
+		2px 2px 0 #e5484d,
+		4px 4px 0 rgba(0, 0, 0, 0.4);
+}
+.marquee-sub {
+	font-size: 13px;
+	opacity: 0.85;
+	margin-top: 2px;
+}

@@ -1,0 +1,334 @@
+/* Clippy Clicker: a big paper clip to click and a shop of clip makers.
+   Builds on games/overlay.css. */
+
+/* Darkens the desktop more on the clip side, where the counter sits. */
+#dim {
+	background: radial-gradient(
+		ellipse 60% 75% at 38% 50%,
+		rgba(40, 26, 90, 0.3),
+		rgba(10, 8, 34, 0.7)
+	);
+}
+
+/* The clip side of the screen, left of the shop */
+#stage {
+	position: fixed;
+	top: 72px;
+	bottom: 16px;
+	left: 16px;
+	right: calc(var(--shop-w) + 40px);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 14px;
+	--shop-w: 340px;
+}
+#stage[hidden] {
+	display: none;
+}
+
+.counter {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 8px 22px 10px;
+	background: var(--bubble);
+	border: 2px solid var(--ink);
+	box-shadow: var(--hard-shadow);
+}
+#clips {
+	font-size: 40px;
+	font-weight: 400;
+	line-height: 1.05;
+	letter-spacing: 0.02em;
+}
+.counter-unit {
+	font-size: 13px;
+	color: var(--ink-soft);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+/* The big clip. A soft glow invites the first click. */
+#clip {
+	position: relative;
+	width: 150px;
+	height: 300px;
+	padding: 0;
+	background: none;
+	border: 0;
+	cursor: pointer;
+	border-radius: 40px;
+	transition: transform 0.12s var(--ease-out);
+}
+#clip::before {
+	content: "";
+	position: absolute;
+	inset: 6% -30%;
+	border-radius: 50%;
+	background: radial-gradient(rgba(255, 210, 63, 0.35), transparent 65%);
+	animation: glow 2.4s ease-in-out infinite;
+	pointer-events: none;
+}
+@keyframes glow {
+	50% {
+		opacity: 0.45;
+		transform: scale(0.92);
+	}
+}
+#clip:hover {
+	transform: rotate(-4deg) scale(1.03);
+}
+#clip:focus-visible {
+	outline: 3px dashed #ffd23f;
+	outline-offset: 6px;
+}
+#clip .big-clip {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	filter: drop-shadow(4px 6px 0 rgba(0, 0, 0, 0.35));
+}
+
+/* Owned producers at work, one row per kind */
+#floor {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: min(100%, 560px);
+	min-height: 40px;
+}
+.crew {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	background: rgba(255, 255, 255, 0.14);
+	border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.crew-icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	flex: 1;
+}
+.crew-icons img {
+	width: 24px;
+	height: 24px;
+	image-rendering: pixelated;
+}
+.crew[data-id="laborer"] .crew-icons img {
+	animation: bend 0.9s steps(2) infinite;
+	animation-delay: calc(var(--i) * -0.13s);
+}
+@keyframes bend {
+	50% {
+		transform: translateY(-2px);
+	}
+}
+.crew[data-id="machine"] .crew-icons img {
+	animation: stamp 0.6s steps(2) infinite;
+	animation-delay: calc(var(--i) * -0.09s);
+}
+@keyframes stamp {
+	50% {
+		transform: scaleY(0.88);
+		transform-origin: bottom;
+	}
+}
+.crew-more {
+	font-size: 13px;
+	color: #fff;
+	text-shadow: 1px 1px 0 var(--ink);
+}
+
+/* Shop window */
+#shop {
+	position: fixed;
+	right: 24px;
+	top: 50%;
+	width: 340px;
+	max-height: calc(100vh - 96px);
+	transform: translateY(-46%);
+}
+#shop[hidden] {
+	display: none;
+}
+#shop.entered {
+	animation: shop-in 0.3s var(--ease-out) both;
+}
+@keyframes shop-in {
+	from {
+		opacity: 0;
+		transform: translate(40px, -46%);
+	}
+}
+#shop .win-body {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 10px;
+	overflow: auto;
+}
+#shop .marquee {
+	padding: 8px 10px 7px;
+}
+#shop .marquee-title {
+	font-size: 20px;
+}
+
+.amounts {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+.amounts .hint {
+	margin-right: 4px;
+}
+
+#goods {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.good {
+	display: grid;
+	grid-template-columns: 40px 1fr auto;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	background: var(--well);
+	box-shadow: var(--bevel-well);
+}
+#goods .good img {
+	width: 40px;
+	height: 40px;
+	image-rendering: pixelated;
+}
+.good-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+.good-name {
+	font-size: 15px;
+	font-weight: 400;
+}
+.good-name small {
+	margin-left: 4px;
+	font-size: 12px;
+	color: var(--ink-soft);
+}
+.good-blurb,
+.good-rate {
+	font-size: 11px;
+	color: var(--ink-soft);
+}
+.good-rate {
+	color: var(--good);
+}
+.good-buy {
+	flex-direction: column;
+	gap: 0;
+	min-width: 84px;
+	padding: 3px 8px;
+	line-height: 1.1;
+}
+.good-buy .price {
+	font-size: 12px;
+	font-weight: 400;
+	color: var(--accent-ink);
+}
+.good-buy:disabled .price {
+	color: inherit;
+}
+#goods .good.locked img {
+	filter: brightness(0) opacity(0.35);
+}
+.good.locked .good-name {
+	color: var(--ink-soft);
+}
+
+/* Progress to the next credit bonus */
+.goal {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.goal-text {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 12px;
+}
+#goal-reward {
+	color: var(--accent-ink);
+}
+.goal-well {
+	height: 14px;
+	padding: 2px;
+	background: #fff;
+	box-shadow: var(--bevel-well);
+}
+#goal-fill {
+	display: block;
+	height: 100%;
+	background: repeating-linear-gradient(
+		90deg,
+		#0b2a7a 0 8px,
+		transparent 8px 10px
+	);
+	transform-origin: left;
+}
+
+.wallet {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 14px;
+}
+#wallet {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+/* Floating "+1"s and flying clips */
+#fx {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+}
+#fx > * {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
+.plus {
+	font: 18px var(--font-px);
+	color: #fff;
+	text-shadow:
+		1px 1px 0 var(--ink),
+		2px 2px 0 rgba(0, 0, 0, 0.35);
+	white-space: nowrap;
+}
+.plus.big {
+	font-size: 26px;
+	color: #ffd23f;
+}
+.bit {
+	width: 12px;
+	height: 28px;
+}
+.bit svg {
+	width: 100%;
+	height: 100%;
+}

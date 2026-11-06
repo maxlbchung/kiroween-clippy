@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="48" viewBox="0 0 72 48">
+	<title>A tape dispenser</title>
+	<path d="M4 44 Q4 22 28 16 Q48 12 62 26 L68 36 V44 Z" fill="#2f7cf6" stroke="#0b2a7a" stroke-width="2" stroke-linejoin="round"/>
+	<circle cx="30" cy="28" r="12" fill="#fff6d6" stroke="#a7a294" stroke-width="2"/>
+	<circle cx="30" cy="28" r="6" fill="#ece8dc" stroke="#a7a294" stroke-width="1.5"/>
+	<path d="M40 22 L66 30" stroke="#e8f4ff" stroke-width="2" opacity="0.8"/>
+	<path d="M64 28 L70 34" stroke="#57534a" stroke-width="3" stroke-linecap="round"/>
+</svg>

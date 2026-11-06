@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>Clippy application icon</title>
+  <defs>
+    <radialGradient id="shadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#000" stop-opacity="0.35" />
+      <stop offset="1" stop-color="#000" stop-opacity="0" />
+    </radialGradient>
+    <path id="wire"
+      d="M82 190 L82 100 A19 19 0 0 1 120 100 L120 222 A27 27 0 0 1 66 222 L66 74 A34 34 0 0 1 134 74 L134 200" />
+  </defs>
+  <ellipse cx="256" cy="465.92" rx="215.04" ry="25.6" fill="url(#shadow)" />
+  <g transform="matrix(2.039322033898305 0 0 2.039322033898305 52.096 -45.779322033898)">
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <use href="#wire" stroke="#373c46" stroke-width="12.5" />
+      <use href="#wire" stroke="#c9ced6" stroke-width="8.6" />
+      <use href="#wire" stroke="#8a929e" stroke-width="2.6" opacity="0.9" transform="translate(1.7 1.9)" />
+      <use href="#wire" stroke="#ffffff" stroke-width="2.4" opacity="0.9" transform="translate(-1.8 -1.7)" />
+    </g>
+    <ellipse cx="82" cy="102" rx="14.5" ry="16.5" fill="#fff" stroke="#26262b" stroke-width="2.6" />
+    <circle cx="82" cy="104" r="6.6" fill="#141418" />
+    <circle cx="79.7" cy="101.4" r="2.2" fill="#fff" />
+    <ellipse cx="120" cy="100" rx="14.5" ry="16.5" fill="#fff" stroke="#26262b" stroke-width="2.6" />
+    <circle cx="120" cy="102" r="6.6" fill="#141418" />
+    <circle cx="117.7" cy="99.4" r="2.2" fill="#fff" />
+    <g fill="none" stroke="#26262b" stroke-width="6" stroke-linecap="round">
+      <path d="M68 79 Q82 70 96 77" />
+      <path d="M106 75 Q120 68 134 75" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="46" height="117" viewBox="54 28 92 234">
+	<title>A plain paper clip</title>
+	<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M82 190 L82 100 A19 19 0 0 1 120 100 L120 222 A27 27 0 0 1 66 222 L66 74 A34 34 0 0 1 134 74 L134 200" stroke="#373c46" stroke-width="12.5"/>
+		<path d="M82 190 L82 100 A19 19 0 0 1 120 100 L120 222 A27 27 0 0 1 66 222 L66 74 A34 34 0 0 1 134 74 L134 200" stroke="#c9ced6" stroke-width="8.6"/>
+		<path d="M82 190 L82 100 A19 19 0 0 1 120 100 L120 222 A27 27 0 0 1 66 222 L66 74 A34 34 0 0 1 134 74 L134 200" stroke="#8a929e" stroke-width="2.6" transform="translate(1.7 1.9)"/>
+		<path d="M82 190 L82 100 A19 19 0 0 1 120 100 L120 222 A27 27 0 0 1 66 222 L66 74 A34 34 0 0 1 134 74 L134 200" stroke="#ffffff" stroke-width="2.4" transform="translate(-1.8 -1.7)"/>
+	</g>
+</svg>

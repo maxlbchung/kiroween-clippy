@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="60" viewBox="0 0 48 60">
+	<title>A friendly ghost</title>
+	<path d="M4 56 V24 A20 20 0 0 1 44 24 V56 L37 50 L30 56 L24 50 L18 56 L11 50 Z" fill="#ffffff" stroke="#3a2a5a" stroke-width="2.5" stroke-linejoin="round"/>
+	<ellipse cx="17" cy="24" rx="4" ry="5.5" fill="#2a2a3a"/>
+	<ellipse cx="31" cy="24" rx="4" ry="5.5" fill="#2a2a3a"/>
+	<ellipse cx="24" cy="36" rx="4" ry="5" fill="#2a2a3a"/>
+	<ellipse cx="11" cy="32" rx="3" ry="2" fill="#ffb3c1"/>
+	<ellipse cx="37" cy="32" rx="3" ry="2" fill="#ffb3c1"/>
+</svg>

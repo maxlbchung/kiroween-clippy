@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>Clippy</title>
+  <link rel="stylesheet" href="../common/base.css">
+  <link rel="stylesheet" href="../common/window.css">
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+  <div id="outline" class="ol" aria-live="polite">
+    <div class="ol-frame"></div>
+    <div class="ol-bar titlebar" data-hit>
+      <span class="ol-step px"></span>
+      <div class="ol-title titlebar-text"></div>
+      <button type="button" class="icon-btn ol-skip" data-btn="skip" title="Skip this step" aria-label="Skip this step">›</button>
+      <button type="button" class="icon-btn ol-close" data-btn="close" title="Stop" aria-label="Stop"><span class="x-glyph"></span></button>
+    </div>
+  </div>
+  <div id="bubble" class="ob" data-hit role="status" aria-live="polite">
+    <div class="ob-text"></div>
+    <div class="ob-buttons"></div>
+    <button type="button" class="ob-close" aria-label="Dismiss">×</button>
+  </div>
+  <script type="module" src="/renderer.js"></script>
+</body>
+</html>

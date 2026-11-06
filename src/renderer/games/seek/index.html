@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <title>Hide &amp; Seek</title>
+  <link rel="stylesheet" href="../../common/base.css">
+  <link rel="stylesheet" href="../../common/clippy.css">
+  <link rel="stylesheet" href="../../common/window.css">
+  <link rel="stylesheet" href="../overlay.css">
+  <link rel="stylesheet" href="seek.css">
+</head>
+<body>
+  <div id="dim"></div>
+  <div id="desk"></div>
+  <div id="fx"></div>
+  <div id="clippy"><div class="bob"></div></div>
+  <div id="bubble" class="px" role="status" aria-live="polite"></div>
+  <div id="blind"></div>
+  <div id="hud" hidden>
+    <div class="hud-cell"><span class="hud-label">FOUND</span><span id="heads" class="heads"></span></div>
+    <div class="hud-cell"><span class="hud-label">TIME</span><b id="time" class="px">0:00</b></div>
+    <div class="hud-cell"><span class="hud-label">SCORE</span><b id="score" class="px">000000</b></div>
+    <button id="hint" class="btn btn-sm" type="button"></button>
+    <span class="hud-hint px">Esc to pause</span>
+  </div>
+  <div id="count" class="px" aria-live="assertive"></div>
+  <div id="dialog" class="frame-window" role="dialog" aria-modal="true" hidden></div>
+  <script type="module" src="/renderer.js"></script>
+</body>
+</html>

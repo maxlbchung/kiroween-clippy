@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="48" viewBox="0 0 96 48">
+	<title>A red stapler</title>
+	<path d="M6 42 H90 Q94 42 94 38 V36 H6 Z" fill="#26262b"/>
+	<path d="M8 36 Q8 28 16 28 H70 L88 34 V36 Z" fill="#4b4b57"/>
+	<path d="M10 26 Q8 12 22 10 L80 8 Q92 8 92 18 L90 28 Q80 30 60 30 H14 Q10 30 10 26 Z" fill="#d93a3a" stroke="#7a0b0b" stroke-width="2" stroke-linejoin="round"/>
+	<path d="M24 14 L78 12" stroke="#ff8a8a" stroke-width="3" stroke-linecap="round"/>
+	<rect x="84" y="26" width="6" height="6" rx="1" fill="#c9ced6" stroke="#373c46" stroke-width="1"/>
+	<circle cx="18" cy="22" r="3" fill="#c9ced6" stroke="#373c46" stroke-width="1"/>
+</svg>

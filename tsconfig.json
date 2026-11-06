@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"rootDir": "src",
+		"noEmitOnError": true,
+		"skipLibCheck": true,
+		"noUncheckedIndexedAccess": false,
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["node"],
+		"sourceMap": true,
+		"strict": true,
+		"strictNullChecks": false,
+		"useUnknownInCatchVariables": false,
+		"noImplicitAny": false
+	},
+	"include": ["src/**/*.ts"]
+}
