@@ -419,7 +419,7 @@ function* clipStorm(w: World, owner: number): Script {
 					y: c.y + Math.sin(a) * 40 * s,
 					vx: Math.cos(a) * sp,
 					vy: Math.sin(a) * sp,
-					r: 6,
+					r: 5,
 					rot: 0,
 					vr: 0,
 					owner,
