@@ -15,9 +15,9 @@
 		"lint": "biome check .",
 		"lint:unsafe": "biome check --unsafe .",
 		"icons": "node scripts/make-icons.mjs",
-		"pack": "electron-builder --win --x64 --dir",
-		"dist:win": "electron-builder --win --x64",
-		"dist:win:zip": "electron-builder --win zip --x64"
+		"pack": "yarn build && electron-builder --win --x64 --dir",
+		"dist:win": "yarn build && electron-builder --win --x64",
+		"dist:win:zip": "yarn build && electron-builder --win zip --x64"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.6.3",
@@ -35,7 +35,7 @@
 		"productName": "Clippy",
 		"copyright": "Copyright © 2026 LiboDev",
 		"directories": {
-			"output": "dist",
+			"output": "out",
 			"buildResources": "build"
 		},
 		"extraResources": [
