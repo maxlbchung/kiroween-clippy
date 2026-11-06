@@ -50,6 +50,10 @@ const ICONS = app.isPackaged
 const PRELOAD = path.join(COMPILED, "preload.js");
 const APP_ORIGIN = "app://clippy";
 
+app.commandLine.appendSwitch("disable-renderer-backgrounding");
+app.commandLine.appendSwitch("disable-background-timer-throttling");
+app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+
 app.setAppUserModelId("com.kiroween.clippy");
 if (process.env.CLIPPY_USER_DATA)
 	app.setPath("userData", process.env.CLIPPY_USER_DATA);
