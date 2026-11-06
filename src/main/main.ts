@@ -175,7 +175,9 @@ function wireIpc() {
 		settings?.patch(guardPatch(settings, patch)),
 	);
 	ipcMain.handle("shop:buy", (_e, category: CostumeCategory, id: string) =>
-		buyCostume(settings, category, id),
+		settings
+			? buyCostume(settings, category, id)
+			: { ok: false, error: "Settings are not loaded yet." },
 	);
 	ipcMain.handle("settings:reset", () => settings?.reset());
 	ipcMain.handle(
@@ -314,16 +316,17 @@ function wireIpc() {
 			pet?.send("pet:mood", "listening");
 			return { ok: true, engine: "openai" };
 		}
-		const ok = speechEngine().start(settings?.data.voice.language ?? "auto");
+		const ok =
+			speechEngine()?.start(settings?.data.voice.language ?? "auto") ?? false;
 		return { ok, engine: process.env.CLIPPY_FAKE_SPEECH ? "fake" : "windows" };
 	});
 	ipcMain.on("dictation:stop", () => {
 		if (settings?.data.voice.engine === "openai") pet?.send("pet:mood", null);
-		else speechEngine().stop();
+		else speechEngine()?.stop();
 	});
 	ipcMain.on("dictation:cancel", () => {
 		pet?.send("pet:mood", null);
-		if (settings?.data.voice.engine !== "openai") speechEngine().cancel();
+		if (settings?.data.voice.engine !== "openai") speechEngine()?.cancel();
 	});
 	ipcMain.handle(
 		"dictation:transcribe",
@@ -332,9 +335,9 @@ function wireIpc() {
 				const text = await transcribeOpenAI({
 					audio: Buffer.from(audio),
 					mime,
-					apiKey: await settings?.getSecret("openai"),
-					model: settings?.data.voice.transcribeModel,
-					language: settings?.data.voice.language,
+					apiKey: (await settings?.getSecret("openai")) ?? "",
+					model: settings?.data.voice.transcribeModel ?? "",
+					language: settings?.data.voice.language ?? "",
 				});
 				return { ok: true, text };
 			} catch (err) {

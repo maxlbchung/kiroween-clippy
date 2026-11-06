@@ -265,7 +265,9 @@ export class TaskRunner {
 					},
 				],
 			};
-			if (this.shot) parts.parts.push(this.shot.image);
+			// perceive() sets the screenshot, which control-flow narrowing cannot see.
+			const shot = this.shot as Shot | null;
+			if (shot) parts.parts.push(shot.image);
 			this.history.push(parts);
 			return await this.loop();
 		} catch (err) {

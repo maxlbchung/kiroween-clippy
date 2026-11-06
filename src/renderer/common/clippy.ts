@@ -25,7 +25,7 @@ const SLOT_ORDER_FRONT: (CostumeSlot | "@face")[] = [
 ];
 
 function finishVars(id: string | null | undefined) {
-	const f = FINISHES[id] || FINISHES.silver;
+	const f = (id && FINISHES[id]) || FINISHES.silver;
 	return `--wire-dark:${f.dark};--wire-base:${f.base};--wire-shade:${f.shade};--wire-light:${f.light};--wire-glow:${f.glow || "transparent"}`;
 }
 

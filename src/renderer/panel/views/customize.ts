@@ -54,7 +54,7 @@ function thumb(category: (typeof CATEGORIES)[number], id: string | null) {
 
 function outfitTitle(c: Costume) {
 	const worn = CATEGORIES.filter((cat) => cat.id !== "finish" && c[cat.id]).map(
-		(cat) => ITEM_BY_ID[c[cat.id]]?.name,
+		(cat) => ITEM_BY_ID[c[cat.id] as string]?.name,
 	);
 	if (!worn.length)
 		return c.finish && c.finish !== "silver"
@@ -118,7 +118,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	const gaze = createGaze(svg);
 	let tab = lastTab;
 	let raf = 0;
-	let blinkTimer: ReturnType<typeof setTimeout> | null = null;
+	let blinkTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const shown = (): Costume =>
 		preview ? { ...costume, [preview.category]: preview.id } : costume;
@@ -264,7 +264,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		const act = target.closest<HTMLElement>("[data-act]")?.dataset.act;
 		if (act === "buy") buy();
 		if (act === "cancel") {
-			tryOn(preview?.category, preview?.id);
+			if (preview) tryOn(preview.category, preview.id);
 			sfx.close();
 		}
 		if (act === "random") {
@@ -278,7 +278,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	});
 
 	/** Toggles a try-on of a locked item; the same item again takes it off. */
-	function tryOn(category: CostumeCategory, id: string) {
+	function tryOn(category: CostumeCategory, id: string | null) {
 		const same = preview?.category === category && preview?.id === id;
 		preview = same || !id ? null : { category, id };
 		draw(!reducedMotion());

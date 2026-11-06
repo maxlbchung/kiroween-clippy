@@ -322,7 +322,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	function render(animate = false) {
 		const s = ctx.settings;
 		const focusId = panel.contains(document.activeElement)
-			? document.activeElement.id
+			? (document.activeElement?.id ?? null)
 			: null;
 		$$(".tab", el).forEach((t) => {
 			t.setAttribute("aria-selected", String(t.dataset.tab === tab));
@@ -419,7 +419,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 					saved("Hotkey set");
 					msg.textContent = "";
 				} else {
-					msg.textContent = res.error;
+					msg.textContent = res.error ?? "";
 					sfx.error();
 				}
 				return;
@@ -460,8 +460,9 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		if (!(target instanceof Element)) return;
 		const tabBtn = target.closest<HTMLElement>("[data-tab]");
 		if (tabBtn) {
-			if (tabBtn.dataset.tab !== tab) {
-				tab = lastTab = tabBtn.dataset.tab;
+			const nextTab = tabBtn.dataset.tab;
+			if (nextTab && nextTab !== tab) {
+				tab = lastTab = nextTab;
 				sfx.hover();
 				render(true);
 			}
@@ -480,7 +481,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 				ctx.close();
 				break;
 			case "save-key":
-				saveKey(row);
+				if (row) saveKey(row);
 				break;
 			case "clear-key":
 				if (row)
@@ -491,7 +492,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 				saved("Key removed");
 				break;
 			case "hotkey": {
-				const btn = target.closest<HTMLElement>("[data-act]");
+				const btn = target.closest<HTMLElement>("[data-act]") as HTMLElement;
 				btn.classList.add("listening");
 				btn.textContent = "Press keys…";
 				break;
@@ -499,7 +500,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			case "hotkey-reset": {
 				const res = await ctx.api.setHotkey("Control+Alt+Space");
 				if (res.ok) saved("Hotkey reset");
-				else $(".hotkey-msg", el).textContent = res.error;
+				else $(".hotkey-msg", el).textContent = res.error ?? "";
 				break;
 			}
 			case "mic":

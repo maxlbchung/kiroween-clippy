@@ -640,7 +640,7 @@ export function* director(w: World): Script {
 		const choices = pool.length ? pool : ATTACKS;
 		let attack = choices[0];
 		if (first && choices.some((a) => a.id === "fireball"))
-			attack = choices.find((a) => a.id === "fireball");
+			attack = choices.find((a) => a.id === "fireball") ?? attack;
 		else {
 			let roll = Math.random() * choices.reduce((n, a) => n + a.weight, 0);
 			for (const a of choices) {

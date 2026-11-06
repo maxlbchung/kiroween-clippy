@@ -54,6 +54,7 @@ export class Arcade {
 		}
 		await this.panels.close();
 		const petBounds = this.pet.bounds;
+		if (!petBounds) return;
 		const scale = this.pet.scale;
 		const display = screen.getDisplayNearestPoint({
 			x: Math.round(petBounds.x + petBounds.width / 2),

@@ -108,7 +108,7 @@ async function animateIn() {
 		setOpacity(1);
 		return;
 	}
-	if (current.kind === "bubble") {
+	if (current?.kind === "bubble") {
 		frame.animate(
 			[
 				{ transform: "scale(.15)", opacity: 0 },

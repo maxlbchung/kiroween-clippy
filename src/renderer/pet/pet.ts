@@ -56,11 +56,11 @@ const mood: {
 	drag: false,
 	sleep: false,
 };
-let flashTimer: ReturnType<typeof setTimeout> | null = null;
+let flashTimer: ReturnType<typeof setTimeout> | undefined;
 let menuOpen = false;
 let activePanel: PanelName | null = null;
 let panelSide: "left" | "right" | null = null;
-let closingTimer: ReturnType<typeof setTimeout> | null = null;
+let closingTimer: ReturnType<typeof setTimeout> | undefined;
 let press: {
 	sx: number;
 	sy: number;
@@ -303,7 +303,7 @@ let lastMove: { x: number; t: number } | null = null;
 let lastMoveAt = 0;
 let raf = 0;
 let lastT = 0;
-let idleTimer: ReturnType<typeof setTimeout> | null = null;
+let idleTimer: ReturnType<typeof setTimeout> | undefined;
 
 // A point the agent wants Clippy to look at, in window coordinates.
 let lookAt: Point | null = null;
@@ -452,8 +452,8 @@ const LINES: Record<string, string | string[]> = {
 		"Right-click me for a quick menu.",
 	],
 };
-let sayTimer: ReturnType<typeof setTimeout> | null = null;
-let typeTimer: ReturnType<typeof setInterval> | null = null;
+let sayTimer: ReturnType<typeof setTimeout> | undefined;
+let typeTimer: ReturnType<typeof setInterval> | undefined;
 let lastSayAt = performance.now();
 
 function say(text: string, ms = 6500) {
