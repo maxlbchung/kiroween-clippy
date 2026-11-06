@@ -450,11 +450,11 @@ function buildRound(): Round {
 		// Desk decoys come back sized for their art, which tells them apart.
 		const kind =
 			spot.kind === "desk"
-				? kinds.find(
+				? (kinds.find(
 						(k) =>
 							DECOYS[k].size.w === spot.rect.w &&
 							DECOYS[k].size.h === spot.rect.h,
-					)
+					) as DecoyKind)
 				: decoyFor(r, models[spot.win].slots[spot.slot].pose);
 		const el = fillSpot(
 			desk,
@@ -756,6 +756,7 @@ function miss(line: string, at: Vec, el?: HTMLElement) {
 
 function stray(at: Vec) {
 	const r = round;
+	if (!r) return;
 	const next = strayClick(r.heat, r.elapsed - r.lastStray);
 	r.heat = next.heat;
 	r.lastStray = r.elapsed;
@@ -772,6 +773,7 @@ function stray(at: Vec) {
 
 function win() {
 	const r = round;
+	if (!r) return;
 	state = "ending";
 	finishRound(points(true), r.elapsed, true);
 	updateHud();
@@ -851,6 +853,7 @@ function reveal(r: Round) {
 
 function timeUp() {
 	const r = round;
+	if (!r) return;
 	state = "ending";
 	r.elapsed = limit;
 	finishRound(points(), limit, false);
@@ -876,6 +879,7 @@ function timeUp() {
 function showResult(won: boolean, avoid: Rect[]) {
 	const res = rounds.last;
 	const r = round;
+	if (!res || !r) return;
 	sfx.open();
 	showDialog(
 		resultsDialog({
@@ -1030,6 +1034,7 @@ function closeWindow(w: Win) {
 
 function spawnPopup(depth: number, near: Vec) {
 	const r = round;
+	if (!r) return;
 	const d = closePopup(r.rng, depth);
 	const rect = clampRect(
 		{
@@ -1136,6 +1141,7 @@ desk.addEventListener("pointerdown", (e) => {
 	if (state !== "playing" || e.button !== 0 || !(e.target instanceof Element))
 		return;
 	const r = round;
+	if (!r) return;
 	const winEl = e.target.closest(".sw");
 	const win = winEl ? (r.wins.find((w) => w.el === winEl) ?? null) : null;
 	if (win?.model.closed) return;
@@ -1187,6 +1193,7 @@ window.addEventListener("pointerup", (e) => {
 /** Handles a click that did not drag: window buttons, finds, decoys and stray clicks. */
 function click(p: Press, at: Vec) {
 	const r = round;
+	if (!r) return;
 	const t = p.target;
 	const act = t.closest<HTMLElement>("[data-act]")?.dataset.act;
 	if (act && p.win) {

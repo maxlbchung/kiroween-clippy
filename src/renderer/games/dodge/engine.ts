@@ -156,7 +156,7 @@ function sprite(w: number, h: number, dpr: number) {
 	const c = document.createElement("canvas");
 	c.width = Math.ceil(w * dpr);
 	c.height = Math.ceil(h * dpr);
-	const g = c.getContext("2d");
+	const g = c.getContext("2d") as CanvasRenderingContext2D;
 	g.scale(dpr, dpr);
 	return { c, g };
 }
@@ -550,7 +550,7 @@ export class World {
 			b.y += b.vy * dt;
 			b.rot += b.vr * dt;
 			if (b.kind === "fireball") {
-				b.fuse -= Math.hypot(b.vx, b.vy) * dt;
+				b.fuse = (b.fuse ?? 0) - Math.hypot(b.vx, b.vy) * dt;
 				if (Math.random() < dt * 60)
 					this.ember(
 						b.x + rand(-10, 10),
@@ -640,7 +640,7 @@ export class World {
 			}
 			p.x += p.vx * dt;
 			p.y += p.vy * dt;
-			if (p.vr) p.rot += p.vr * dt;
+			if (p.vr) p.rot = (p.rot ?? 0) + p.vr * dt;
 			keep.push(p);
 		}
 		this.particles = keep;
@@ -775,7 +775,7 @@ export class World {
 			case "glyph":
 				drawSprite(
 					ctx,
-					glyph(p.ch, p.color, p.size, this.dpr),
+					glyph(p.ch as string, p.color, p.size, this.dpr),
 					this.dpr,
 					p.x,
 					p.y,
@@ -797,7 +797,7 @@ export class World {
 				ctx.strokeStyle = p.color;
 				ctx.lineWidth = 3 + 5 * k;
 				ctx.beginPath();
-				ctx.arc(p.x, p.y, p.size + (1 - k) * p.grow, 0, Math.PI * 2);
+				ctx.arc(p.x, p.y, p.size + (1 - k) * (p.grow ?? 0), 0, Math.PI * 2);
 				ctx.stroke();
 				ctx.globalAlpha = 1;
 				break;
@@ -808,7 +808,7 @@ export class World {
 				ctx.lineWidth = p.size * k;
 				ctx.beginPath();
 				ctx.moveTo(p.x, p.y);
-				ctx.lineTo(p.x2, p.y2);
+				ctx.lineTo(p.x2 as number, p.y2 as number);
 				ctx.stroke();
 				ctx.globalAlpha = 1;
 				break;
@@ -820,9 +820,9 @@ export class World {
 				ctx.lineJoin = "round";
 				ctx.lineWidth = 4;
 				ctx.strokeStyle = "#17171c";
-				ctx.strokeText(p.text, p.x, p.y);
+				ctx.strokeText(p.text as string, p.x, p.y);
 				ctx.fillStyle = p.color;
-				ctx.fillText(p.text, p.x, p.y);
+				ctx.fillText(p.text as string, p.x, p.y);
 				ctx.globalAlpha = 1;
 				break;
 		}
@@ -834,7 +834,7 @@ export class World {
 		if (b.kind === "letter") {
 			drawSprite(
 				ctx,
-				glyph(b.ch, b.color, b.size, dpr),
+				glyph(b.ch as string, b.color as string, b.size as number, dpr),
 				dpr,
 				b.x,
 				b.y,

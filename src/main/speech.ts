@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import readline from "node:readline";
+import type { DictationEvent } from "../shared/types.js";
 
 export class WindowsSpeech extends EventEmitter {
 	script: string;
@@ -92,7 +93,7 @@ export class WindowsSpeech extends EventEmitter {
 		});
 	}
 
-	write(cmd) {
+	write(cmd: string) {
 		const proc = this.proc;
 		if (!proc) return;
 		if (!this.ready) {
@@ -102,7 +103,7 @@ export class WindowsSpeech extends EventEmitter {
 		proc.stdin?.write(`${cmd}\n`);
 	}
 
-	start(language) {
+	start(language: string) {
 		if (!this.supported) {
 			this.emit("event", {
 				type: "error",
@@ -154,7 +155,7 @@ export class FakeSpeech extends EventEmitter {
 		this.cancel();
 		const words = "open notepad and type hello world".split(" ");
 		const timers: ReturnType<typeof setTimeout>[] = [];
-		const at = (ms, evt) =>
+		const at = (ms: number, evt: DictationEvent) =>
 			timers.push(setTimeout(() => this.emit("event", evt), ms));
 		at(50, { type: "started" });
 		for (let i = 0; i < 60; i++)

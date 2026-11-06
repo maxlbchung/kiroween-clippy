@@ -441,7 +441,7 @@ export class Rounds {
 		const record = saveBest(this.id, score);
 		this.best = loadBest(this.id);
 		this.last = { score, time, record };
-		this.reward = api.gameRound(this.last).catch(() => null);
+		this.reward = api.gameRound(this.last).catch((): null => null);
 	}
 
 	/** Reports a round cut short by quitting, if it scored anything. */

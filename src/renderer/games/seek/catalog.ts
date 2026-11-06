@@ -402,7 +402,7 @@ let siteDeck: typeof SITES = [];
 
 function browser(rng: Rng): Draft {
 	if (!siteDeck.length) siteDeck = shuffle(SITES, rng);
-	const site = siteDeck.pop()(rng);
+	const site = (siteDeck.pop() as (typeof SITES)[number])(rng);
 	const w = pick([440, 460, 480], rng);
 	const h = pick([340, 360, 380], rng);
 	return {

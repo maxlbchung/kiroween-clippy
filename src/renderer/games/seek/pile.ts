@@ -90,7 +90,7 @@ export function measureWindow(
 	z: number,
 ): Win {
 	const frame = el.getBoundingClientRect();
-	const body = el.querySelector<HTMLElement>(".sw-body");
+	const body = el.querySelector<HTMLElement>(".sw-body") as HTMLElement;
 	const scroller = el.querySelector<HTMLElement>(".scroll");
 	const root = scroller ?? body;
 	const rootBox = root.getBoundingClientRect();

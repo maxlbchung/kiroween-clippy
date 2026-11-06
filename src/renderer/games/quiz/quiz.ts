@@ -547,6 +547,7 @@ function grade(ratio: number): Grade {
 
 function showGameOver(g: Grade) {
 	const r = rounds.last;
+	if (!r) return;
 	dialog.show(
 		resultsDialog({
 			title: "Results",

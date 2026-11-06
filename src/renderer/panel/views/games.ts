@@ -54,12 +54,12 @@ function titleCard(card: TitleCard) {
       <button class="btn" data-act="back">Back</button>
       <button class="btn btn-primary" data-act="play">Play</button>
     </div>`;
-		el.querySelector<HTMLElement>('[data-act="play"]').focus();
-		el.querySelector('[data-act="back"]').addEventListener("click", () => {
+		el.querySelector<HTMLElement>('[data-act="play"]')?.focus();
+		el.querySelector('[data-act="back"]')?.addEventListener("click", () => {
 			sfx.close();
 			back();
 		});
-		el.querySelector('[data-act="play"]').addEventListener("click", () => {
+		el.querySelector('[data-act="play"]')?.addEventListener("click", () => {
 			sfx.select();
 			ctx.api.launchGame(card.id);
 		});

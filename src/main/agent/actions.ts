@@ -309,6 +309,18 @@ function text(
 	input: Record<string, unknown>,
 	key: string,
 	max: number,
+	options?: { optional?: false; allowEmpty?: boolean },
+): string;
+function text(
+	input: Record<string, unknown>,
+	key: string,
+	max: number,
+	options: { optional: true; allowEmpty?: boolean },
+): string | null;
+function text(
+	input: Record<string, unknown>,
+	key: string,
+	max: number,
 	{ optional = false, allowEmpty = false } = {},
 ): string | null {
 	const v = input[key];
@@ -364,6 +376,16 @@ function oneOf<T extends string>(
 	return v as T;
 }
 
+function target(
+	input: Record<string, unknown>,
+	key: string,
+	optional?: false,
+): Target;
+function target(
+	input: Record<string, unknown>,
+	key: string,
+	optional: true,
+): Target | null;
 function target(
 	input: Record<string, unknown>,
 	key: string,

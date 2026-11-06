@@ -58,7 +58,7 @@ export function owns(
 ) {
 	return (
 		priceOf(category, id) === 0 ||
-		wallet.unlocked.includes(costumeKey(category, id))
+		(id !== null && wallet.unlocked.includes(costumeKey(category, id)))
 	);
 }
 

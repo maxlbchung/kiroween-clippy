@@ -23,7 +23,7 @@ import * as games from "./views/games.js";
 import * as settingsView from "./views/settings.js";
 
 const VIEWS = { chat, direct, customize, games, settings: settingsView };
-const TITLE_ICONS = {
+const TITLE_ICONS: Partial<Record<PanelName, string>> = {
 	customize: "customize",
 	games: "games",
 	settings: "settings",
@@ -108,7 +108,7 @@ async function animateIn() {
 		setOpacity(1);
 		return;
 	}
-	if (current.kind === "bubble") {
+	if (current?.kind === "bubble") {
 		frame.animate(
 			[
 				{ transform: "scale(.15)", opacity: 0 },

@@ -49,7 +49,7 @@ export function toAnthropicMessages(history: HistoryItem[]): MessageParam[] {
 			// Replays the full content, thinking blocks included, unchanged.
 			out.push({
 				role: "assistant",
-				content: h.native as MessageParam["content"],
+				content: h.native as Anthropic.Beta.BetaMessageContentParam,
 			});
 		} else {
 			out.push({

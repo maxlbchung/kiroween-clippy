@@ -34,7 +34,7 @@ api.onChatNote(({ text }) => {
 	refresh();
 });
 
-function format(text) {
+function format(text: string) {
 	// minimal, safe formatting: **bold**, `code`, line breaks
 	return esc(text)
 		.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
@@ -83,7 +83,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
       </div>`;
 	}
 
-	function msgHtml(m, i) {
+	function msgHtml(m: ChatMessage, i: number) {
 		const streaming =
 			state.streamId &&
 			i === state.messages.length - 1 &&
@@ -118,7 +118,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		if (stick) scrollDown(false);
 	}
 
-	function appendNode(i) {
+	function appendNode(i: number) {
 		log.querySelector(".chat-empty")?.remove();
 		log.insertAdjacentHTML("beforeend", msgHtml(state.messages[i], i));
 		const node = log.lastElementChild;
@@ -145,7 +145,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		ctx.api.chatSend(id, history);
 	}
 
-	function send(text) {
+	function send(text: string) {
 		const t = text.trim();
 		if (!t || state.streamId) return;
 		sfx.send();

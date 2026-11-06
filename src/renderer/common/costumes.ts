@@ -104,14 +104,20 @@ export const FINISHES: Record<
 	},
 };
 
-const heart = (cx, cy, s) =>
+const heart = (cx: number, cy: number, s: number) =>
 	`M${cx} ${cy + s * 0.9} C${cx - s * 1.45} ${cy + s * 0.05} ${cx - s * 0.95} ${cy - s * 1.05} ${cx} ${cy - s * 0.38} ` +
 	`C${cx + s * 0.95} ${cy - s * 1.05} ${cx + s * 1.45} ${cy + s * 0.05} ${cx} ${cy + s * 0.9} Z`;
 
-const star4 = (x, y, r, fill = "#ffe066") =>
+const star4 = (x: number, y: number, r: number, fill = "#ffe066") =>
 	`<path d="M${x} ${y - r} Q${x + r * 0.22} ${y - r * 0.22} ${x + r} ${y} Q${x + r * 0.22} ${y + r * 0.22} ${x} ${y + r} Q${x - r * 0.22} ${y + r * 0.22} ${x - r} ${y} Q${x - r * 0.22} ${y - r * 0.22} ${x} ${y - r} Z" fill="${fill}"/>`;
 
-function pixels(rows, x0, y0, size, colors) {
+function pixels(
+	rows: string[],
+	x0: number,
+	y0: number,
+	size: number,
+	colors: Record<string, string>,
+) {
 	let out = "";
 	rows.forEach((row, ry) => {
 		let rx = 0;
@@ -130,7 +136,7 @@ function pixels(rows, x0, y0, size, colors) {
 const CAPE_BODY =
 	"M66 110 C56 150 44 200 36 256 C50 264 62 254 76 262 C90 270 110 270 124 262 C138 254 150 264 164 256 C156 200 144 150 134 110 C120 103 80 103 66 110 Z";
 
-const clasps = (fill, stroke) =>
+const clasps = (fill: string, stroke: string) =>
 	`<circle cx="66" cy="112" r="6.5" fill="${fill}" stroke="${stroke}" stroke-width="2"/>` +
 	`<circle cx="134" cy="112" r="6.5" fill="${fill}" stroke="${stroke}" stroke-width="2"/>` +
 	`<circle cx="64.5" cy="110.5" r="2" fill="#fff" opacity=".7"/><circle cx="132.5" cy="110.5" r="2" fill="#fff" opacity=".7"/>`;

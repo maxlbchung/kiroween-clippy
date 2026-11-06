@@ -36,8 +36,8 @@ type State =
 const worldEl = $("#world");
 const backCanvas = $("#back") as HTMLCanvasElement;
 const frontCanvas = $("#front") as HTMLCanvasElement;
-const back = backCanvas.getContext("2d");
-const front = frontCanvas.getContext("2d");
+const back = backCanvas.getContext("2d") as CanvasRenderingContext2D;
+const front = frontCanvas.getContext("2d") as CanvasRenderingContext2D;
 const clippyEl = $("#clippy");
 const winLayer = $("#wins");
 const hud = $("#hud");
@@ -253,6 +253,7 @@ function gameOver(at: Vec) {
 
 function showGameOver() {
 	const r = rounds.last;
+	if (!r) return;
 	sfx.open();
 	dialog.show(
 		resultsDialog({

@@ -127,7 +127,7 @@ export function layoutPile(
 	return sizes.map((size) => {
 		const w = Math.min(size.w, area.w);
 		const h = Math.min(size.h, area.h);
-		let best: Rect = null;
+		let best: Rect | null = null;
 		let bestCost = Infinity;
 		for (let t = 0; t < tries; t++) {
 			const r = {
@@ -147,8 +147,10 @@ export function layoutPile(
 				bestCost = cost;
 			}
 		}
-		for (const c of cells(best)) grid[c] += 1;
-		return { x: Math.round(best.x), y: Math.round(best.y), w, h };
+		// Every try has a finite cost, so the first one always sets best.
+		const spot = best as Rect;
+		for (const c of cells(spot)) grid[c] += 1;
+		return { x: Math.round(spot.x), y: Math.round(spot.y), w, h };
 	});
 }
 
@@ -277,7 +279,7 @@ export function leastCovered(
 	if (size.w > area.w || size.h > area.h) return null;
 	const covers = coversOf(wins, -1);
 	const step = 16;
-	let best: Rect = null;
+	let best: Rect | null = null;
 	let bestCost = Infinity;
 	for (let y = area.y; y <= area.y + area.h - size.h; y += step) {
 		for (let x = area.x; x <= area.x + area.w - size.w; x += step) {
@@ -367,7 +369,7 @@ export function chooseSpots(
 					]
 				: [[0.45, 0.92]];
 		bands.push([0.25, 0.97]);
-		let rect: Rect = null;
+		let rect: Rect | null = null;
 		for (const [min, max] of bands) {
 			rect = deskSpot(wins, area, size, rng, min, max, deskRects());
 			if (rect) break;
@@ -503,7 +505,7 @@ export function placeDialog(
 	const area = playArea(view);
 	const xs = [0.5, 0.2, 0.8];
 	const ys = [0.5, 0.18, 0.82];
-	let best: Rect = null;
+	let best: Rect | null = null;
 	let bestCost = Infinity;
 	for (const fy of ys) {
 		for (const fx of xs) {
@@ -525,5 +527,6 @@ export function placeDialog(
 			if (cost === 0) return r;
 		}
 	}
-	return best;
+	// The candidate grid is non-empty and every cost is finite.
+	return best as Rect;
 }
