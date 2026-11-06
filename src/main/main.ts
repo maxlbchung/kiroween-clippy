@@ -29,6 +29,7 @@ import { DesktopHost, DesktopScreen } from "./desktop.js";
 import { Overlay } from "./overlay.js";
 import { Panels } from "./panels.js";
 import { Pet } from "./pet.js";
+import { configureWindowPlatform } from "./platform.js";
 import { Settings } from "./settings.js";
 import { awardCredits, buyCostume, guardPatch, keepWornItems } from "./shop.js";
 import { FakeSpeech, transcribeOpenAI, WindowsSpeech } from "./speech.js";
@@ -53,6 +54,11 @@ const APP_ORIGIN = "app://clippy";
 app.commandLine.appendSwitch("disable-renderer-backgrounding");
 app.commandLine.appendSwitch("disable-background-timer-throttling");
 app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
+
+configureWindowPlatform({
+	platform: process.platform,
+	appendSwitch: (name, value) => app.commandLine.appendSwitch(name, value),
+});
 
 app.setAppUserModelId("com.kiroween.clippy");
 if (process.env.CLIPPY_USER_DATA)
