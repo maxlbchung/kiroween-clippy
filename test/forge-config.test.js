@@ -30,13 +30,13 @@ test("postStart starts the watcher without changing the child process", async ()
 	listeners.get("exit")();
 });
 
-test("Linux uses X11 so Electron can move windows on Wayland desktops", () => {
+test("Linux uses X11 and an in-process GPU", () => {
 	const switches = [];
 	configureWindowPlatform({
 		platform: "linux",
 		appendSwitch: (...value) => switches.push(value),
 	});
-	assert.deepEqual(switches, [["ozone-platform", "x11"]]);
+	assert.deepEqual(switches, [["ozone-platform", "x11"], ["in-process-gpu"]]);
 });
 
 test("other platforms keep their default window backend", () => {
