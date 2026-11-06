@@ -243,6 +243,7 @@ export class World {
 	dpr: number;
 	hooks: WorldHooks;
 	winLayer: HTMLElement;
+	/** Live pointer position, updated in place by the overlay's pointer tracking. */
 	cursor: Vec;
 	time = 0;
 	bonus = 0;
@@ -283,7 +284,7 @@ export class World {
 		this.dpr = dpr;
 		this.hooks = hooks;
 		this.winLayer = winLayer;
-		this.cursor = { ...cursor };
+		this.cursor = cursor;
 		this.clippy = {
 			x: clippyAt.x,
 			y: clippyAt.y,
