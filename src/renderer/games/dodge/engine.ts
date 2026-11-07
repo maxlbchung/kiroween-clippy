@@ -32,6 +32,29 @@ function segmentDist(p: Vec, a: Vec, b: Vec) {
 	return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
 }
 
+/** Half the length of a paper clip's capsule hitbox, measured along its heading. */
+export const CLIP_HALF_LEN = 9;
+
+/**
+ * Distance from `p` to the core of the bullet's hitbox, swept from where it
+ * was before its latest step to where it is now. Paper clips are capsules
+ * along their heading; every other bullet is a circle.
+ */
+export function bulletDist(b: Bullet, p: Vec) {
+	const from = { x: b.px ?? b.x, y: b.py ?? b.y };
+	const to = { x: b.x, y: b.y };
+	if (b.kind === "clip") {
+		const speed = Math.hypot(b.vx, b.vy) || 1;
+		const hx = (b.vx / speed) * CLIP_HALF_LEN;
+		const hy = (b.vy / speed) * CLIP_HALF_LEN;
+		from.x -= hx;
+		from.y -= hy;
+		to.x += hx;
+		to.y += hy;
+	}
+	return segmentDist(p, from, to);
+}
+
 export type Bullet = {
 	kind: "letter" | "clip" | "fireball";
 	x: number;
@@ -54,6 +77,9 @@ export type Bullet = {
 	fuse?: number;
 	letters?: string;
 	grazed?: boolean;
+	/** Position before the latest update, for swept collision. */
+	px?: number;
+	py?: number;
 };
 
 export type Particle = {
@@ -243,6 +269,7 @@ export class World {
 	dpr: number;
 	hooks: WorldHooks;
 	winLayer: HTMLElement;
+	/** Live pointer position, updated in place by the overlay's pointer tracking. */
 	cursor: Vec;
 	time = 0;
 	bonus = 0;
@@ -283,7 +310,7 @@ export class World {
 		this.dpr = dpr;
 		this.hooks = hooks;
 		this.winLayer = winLayer;
-		this.cursor = { ...cursor };
+		this.cursor = cursor;
 		this.clippy = {
 			x: clippyAt.x,
 			y: clippyAt.y,
@@ -546,6 +573,8 @@ export class World {
 				b.vx *= k;
 				b.vy *= k;
 			}
+			b.px = b.x;
+			b.py = b.y;
 			b.x += b.vx * dt;
 			b.y += b.vy * dt;
 			b.rot += b.vr * dt;
@@ -667,7 +696,7 @@ export class World {
 			this.sound("graze");
 		};
 		for (const b of this.bullets) {
-			const d = Math.hypot(b.x - p.x, b.y - p.y);
+			const d = bulletDist(b, p);
 			if (d < b.r + HIT_R) return { x: b.x, y: b.y };
 			if (!b.grazed && d < b.r + HIT_R + GRAZE_R) {
 				b.grazed = true;
