@@ -270,7 +270,9 @@ export class TaskRunner {
 					},
 				],
 			};
-			if (this.shot) parts.parts.push(this.shot.image);
+			// perceive() sets the screenshot, which control-flow narrowing cannot see.
+			const shot = this.shot as Shot | null;
+			if (shot) parts.parts.push(shot.image);
 			this.history.push(parts);
 			return await this.loop();
 		} catch (err) {
@@ -645,8 +647,8 @@ export class TaskRunner {
 				this.stage.say(text, buttons),
 				this.clock
 					.sleep(timeoutMs, ctrl.signal)
-					.then(() => null)
-					.catch(() => null),
+					.then((): null => null)
+					.catch((): null => null),
 			]);
 			// A run that already ended leaves the stage to whoever owns it now.
 			if (done.aborted) return null;
@@ -822,7 +824,9 @@ export class TaskRunner {
 		if (!element) return;
 		let rect = spec.rect;
 		this.trackTimer = setInterval(async () => {
-			const next = await this.screen.elementRect(element).catch(() => null);
+			const next = await this.screen
+				.elementRect(element)
+				.catch((): null => null);
 			if (!next || !this.trackTimer) return;
 			if (
 				Math.abs(next.x - rect.x) > 1 ||

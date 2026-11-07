@@ -73,13 +73,13 @@ export function installClickThrough({
 }: {
 	isLocked?: () => boolean;
 } = {}) {
-	let interactive = null;
-	const set = (on) => {
+	let interactive: boolean | null = null;
+	const set = (on: boolean) => {
 		if (on === interactive) return;
 		interactive = on;
 		api.setInteractive(on);
 	};
-	const check = (e) => {
+	const check = (e: Pick<MouseEvent, "clientX" | "clientY" | "buttons">) => {
 		if (isLocked() || e.buttons) return set(true);
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		set(!!el?.closest("[data-hit]"));
@@ -91,7 +91,8 @@ export function installClickThrough({
 	});
 	set(false);
 	return {
-		refresh: (x, y) => check({ clientX: x, clientY: y, buttons: 0 }),
+		refresh: (x: number, y: number) =>
+			check({ clientX: x, clientY: y, buttons: 0 }),
 		set,
 	};
 }
@@ -99,7 +100,7 @@ export function installClickThrough({
 // ---------- tiny retro synth (no audio files) ----------
 let ctx: AudioContext | null = null;
 let enabled = true;
-export function setSoundEnabled(on) {
+export function setSoundEnabled(on: boolean) {
 	enabled = !!on;
 }
 

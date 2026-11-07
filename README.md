@@ -33,7 +33,7 @@ CLIPPY_FAKE_SPEECH=1 yarn start
 
 ## Build for Windows
 
-On Windows, this builds the NSIS installer, a portable `.exe` and a `.zip` in `dist/`:
+On Windows, this builds the NSIS installer, a portable `.exe` and a `.zip` in `out/`:
 
 ```bash
 yarn dist:win

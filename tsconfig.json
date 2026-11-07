@@ -11,9 +11,9 @@
 		"types": ["node"],
 		"sourceMap": true,
 		"strict": true,
-		"strictNullChecks": false,
+		"strictNullChecks": true,
 		"useUnknownInCatchVariables": false,
-		"noImplicitAny": false
+		"noImplicitAny": true
 	},
-	"include": ["src/**/*.ts"]
+	"include": ["src/**/*.ts", "src/**/*.cts"]
 }

@@ -419,7 +419,7 @@ function* clipStorm(w: World, owner: number): Script {
 					y: c.y + Math.sin(a) * 40 * s,
 					vx: Math.cos(a) * sp,
 					vy: Math.sin(a) * sp,
-					r: 6,
+					r: 5,
 					rot: 0,
 					vr: 0,
 					owner,
@@ -640,7 +640,7 @@ export function* director(w: World): Script {
 		const choices = pool.length ? pool : ATTACKS;
 		let attack = choices[0];
 		if (first && choices.some((a) => a.id === "fireball"))
-			attack = choices.find((a) => a.id === "fireball");
+			attack = choices.find((a) => a.id === "fireball") ?? attack;
 		else {
 			let roll = Math.random() * choices.reduce((n, a) => n + a.weight, 0);
 			for (const a of choices) {

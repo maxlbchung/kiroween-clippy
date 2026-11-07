@@ -10,7 +10,7 @@ const NO_SPEECH_MS = 9000;
 const SILENCE_AFTER_SPEECH_MS = 1300;
 const MAX_RECORD_MS = 30000;
 
-const STATUS = {
+const STATUS: Record<string, string> = {
 	starting: "Warming up…",
 	listening: "Listening…",
 	finishing: "Got it…",
@@ -51,7 +51,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	const retryBtn = $('[data-act="retry"]', el);
 
 	let state = "starting";
-	let finals = [];
+	let finals: string[] = [];
 	let partial = "";
 	let levels = new Array(BARS).fill(0);
 	let engine: "openai" | "windows" | "fake" | null = null;
@@ -73,7 +73,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	let alive = true;
 	let off: (() => void) | null = null;
 
-	const later = (fn, ms) => {
+	const later = (fn: () => void, ms: number) => {
 		const t = setTimeout(fn, ms);
 		timers.push(t);
 		return t;
@@ -92,7 +92,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		retryBtn.hidden = !["empty", "error"].includes(s);
 	}
 
-	function pushLevel(v) {
+	function pushLevel(v: number) {
 		levels.push(Math.max(0, Math.min(1, v)));
 		levels = levels.slice(-BARS);
 		bars.forEach((b, i) => {
@@ -178,7 +178,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		later(() => alive && ctx.close(), 1200);
 	}
 
-	function fail(message) {
+	function fail(message: string) {
 		clearTimers();
 		setState("error", esc(message));
 		sfx.error();
@@ -231,7 +231,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 				? "audio/webm;codecs=opus"
 				: "audio/webm";
 			const recorder = new MediaRecorder(stream, { mimeType: mime });
-			const chunks = [];
+			const chunks: Blob[] = [];
 			recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
 			const ac = new AudioContext();
 			const analyser = ac.createAnalyser();

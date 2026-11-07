@@ -8,7 +8,7 @@ import { clampPet, clampRing, defaultPetPosition } from "./placement.js";
 import type { Settings } from "./settings.js";
 
 const FRAME_MS = 1000 / 60;
-const easeOutCubic = (t) => 1 - (1 - t) ** 3;
+const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 export class Pet extends EventEmitter {
 	settings: Settings;

@@ -25,7 +25,12 @@ import {
 } from "./actions.js";
 import { createAnthropicClient } from "./anthropic.js";
 import { placeNear, walkDuration } from "./geometry.js";
-import type { HistoryItem, ModelClient, ToolResult } from "./model.js";
+import type {
+	HistoryItem,
+	ModelClient,
+	ToolCall,
+	ToolResult,
+} from "./model.js";
 import { createOpenAIClient } from "./openai.js";
 import { ASSESS_SYSTEM, CHAT_SYSTEM, TIP_SYSTEM } from "./prompts.js";
 import { type Stage, type TaskOutcome, TaskRunner } from "./runner.js";
@@ -66,7 +71,7 @@ function assistantText(provider: ModelClient["provider"], text: string) {
 	return {
 		role: "assistant" as const,
 		text,
-		calls: [],
+		calls: [] as ToolCall[],
 		native:
 			provider === "anthropic"
 				? [{ type: "text", text }]

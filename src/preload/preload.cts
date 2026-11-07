@@ -1,12 +1,14 @@
 // Sandboxed preload: exposes a narrow, explicit API to the renderers.
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import type { ClippyAPI } from "../shared/types.js";
 
-function on(channel: string) {
-	return (cb) => {
-		const fn = (_e, payload) => cb(payload);
+function on<T>(channel: string) {
+	return (cb: (payload: T) => void) => {
+		const fn = (_e: IpcRendererEvent, payload: T) => cb(payload);
 		ipcRenderer.on(channel, fn);
-		return () => ipcRenderer.removeListener(channel, fn);
+		return () => {
+			ipcRenderer.removeListener(channel, fn);
+		};
 	};
 }
 

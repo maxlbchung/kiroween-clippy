@@ -32,6 +32,29 @@ function segmentDist(p: Vec, a: Vec, b: Vec) {
 	return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
 }
 
+/** Half the length of a paper clip's capsule hitbox, measured along its heading. */
+export const CLIP_HALF_LEN = 9;
+
+/**
+ * Distance from `p` to the core of the bullet's hitbox, swept from where it
+ * was before its latest step to where it is now. Paper clips are capsules
+ * along their heading; every other bullet is a circle.
+ */
+export function bulletDist(b: Bullet, p: Vec) {
+	const from = { x: b.px ?? b.x, y: b.py ?? b.y };
+	const to = { x: b.x, y: b.y };
+	if (b.kind === "clip") {
+		const speed = Math.hypot(b.vx, b.vy) || 1;
+		const hx = (b.vx / speed) * CLIP_HALF_LEN;
+		const hy = (b.vy / speed) * CLIP_HALF_LEN;
+		from.x -= hx;
+		from.y -= hy;
+		to.x += hx;
+		to.y += hy;
+	}
+	return segmentDist(p, from, to);
+}
+
 export type Bullet = {
 	kind: "letter" | "clip" | "fireball";
 	x: number;
@@ -54,6 +77,9 @@ export type Bullet = {
 	fuse?: number;
 	letters?: string;
 	grazed?: boolean;
+	/** Position before the latest update, for swept collision. */
+	px?: number;
+	py?: number;
 };
 
 export type Particle = {
@@ -156,7 +182,7 @@ function sprite(w: number, h: number, dpr: number) {
 	const c = document.createElement("canvas");
 	c.width = Math.ceil(w * dpr);
 	c.height = Math.ceil(h * dpr);
-	const g = c.getContext("2d");
+	const g = c.getContext("2d") as CanvasRenderingContext2D;
 	g.scale(dpr, dpr);
 	return { c, g };
 }
@@ -243,6 +269,7 @@ export class World {
 	dpr: number;
 	hooks: WorldHooks;
 	winLayer: HTMLElement;
+	/** Live pointer position, updated in place by the overlay's pointer tracking. */
 	cursor: Vec;
 	time = 0;
 	bonus = 0;
@@ -283,7 +310,7 @@ export class World {
 		this.dpr = dpr;
 		this.hooks = hooks;
 		this.winLayer = winLayer;
-		this.cursor = { ...cursor };
+		this.cursor = cursor;
 		this.clippy = {
 			x: clippyAt.x,
 			y: clippyAt.y,
@@ -546,11 +573,13 @@ export class World {
 				b.vx *= k;
 				b.vy *= k;
 			}
+			b.px = b.x;
+			b.py = b.y;
 			b.x += b.vx * dt;
 			b.y += b.vy * dt;
 			b.rot += b.vr * dt;
 			if (b.kind === "fireball") {
-				b.fuse -= Math.hypot(b.vx, b.vy) * dt;
+				b.fuse = (b.fuse ?? 0) - Math.hypot(b.vx, b.vy) * dt;
 				if (Math.random() < dt * 60)
 					this.ember(
 						b.x + rand(-10, 10),
@@ -640,7 +669,7 @@ export class World {
 			}
 			p.x += p.vx * dt;
 			p.y += p.vy * dt;
-			if (p.vr) p.rot += p.vr * dt;
+			if (p.vr) p.rot = (p.rot ?? 0) + p.vr * dt;
 			keep.push(p);
 		}
 		this.particles = keep;
@@ -667,7 +696,7 @@ export class World {
 			this.sound("graze");
 		};
 		for (const b of this.bullets) {
-			const d = Math.hypot(b.x - p.x, b.y - p.y);
+			const d = bulletDist(b, p);
 			if (d < b.r + HIT_R) return { x: b.x, y: b.y };
 			if (!b.grazed && d < b.r + HIT_R + GRAZE_R) {
 				b.grazed = true;
@@ -775,7 +804,7 @@ export class World {
 			case "glyph":
 				drawSprite(
 					ctx,
-					glyph(p.ch, p.color, p.size, this.dpr),
+					glyph(p.ch as string, p.color, p.size, this.dpr),
 					this.dpr,
 					p.x,
 					p.y,
@@ -797,7 +826,7 @@ export class World {
 				ctx.strokeStyle = p.color;
 				ctx.lineWidth = 3 + 5 * k;
 				ctx.beginPath();
-				ctx.arc(p.x, p.y, p.size + (1 - k) * p.grow, 0, Math.PI * 2);
+				ctx.arc(p.x, p.y, p.size + (1 - k) * (p.grow ?? 0), 0, Math.PI * 2);
 				ctx.stroke();
 				ctx.globalAlpha = 1;
 				break;
@@ -808,7 +837,7 @@ export class World {
 				ctx.lineWidth = p.size * k;
 				ctx.beginPath();
 				ctx.moveTo(p.x, p.y);
-				ctx.lineTo(p.x2, p.y2);
+				ctx.lineTo(p.x2 as number, p.y2 as number);
 				ctx.stroke();
 				ctx.globalAlpha = 1;
 				break;
@@ -820,9 +849,9 @@ export class World {
 				ctx.lineJoin = "round";
 				ctx.lineWidth = 4;
 				ctx.strokeStyle = "#17171c";
-				ctx.strokeText(p.text, p.x, p.y);
+				ctx.strokeText(p.text as string, p.x, p.y);
 				ctx.fillStyle = p.color;
-				ctx.fillText(p.text, p.x, p.y);
+				ctx.fillText(p.text as string, p.x, p.y);
 				ctx.globalAlpha = 1;
 				break;
 		}
@@ -834,7 +863,7 @@ export class World {
 		if (b.kind === "letter") {
 			drawSprite(
 				ctx,
-				glyph(b.ch, b.color, b.size, dpr),
+				glyph(b.ch as string, b.color as string, b.size as number, dpr),
 				dpr,
 				b.x,
 				b.y,

@@ -75,7 +75,8 @@ export function guardPatch(
 		const category = key as CostumeCategory;
 		if (!CATEGORIES.includes(category)) continue;
 		const id = typeof value === "string" ? value : null;
-		if (owns(settings.data.wallet, category, id)) costume[category] = value;
+		if (owns(settings.data.wallet, category, id))
+			costume[category] = value as string;
 	}
 	return { ...rest, costume };
 }
