@@ -1,6 +1,5 @@
 // OpenAI Model_Provider adapter over the Responses API, which current OpenAI
-// models need for tool calling. Also serves OpenAI-compatible endpoints that
-// implement /responses.
+// models need for tool calling.
 
 import type { ToolSpec } from "./actions.js";
 import {
@@ -154,6 +153,52 @@ export function fromOpenAIResponse(body: ResponseBody): ModelReply {
 	return { text, calls, native: output, stop };
 }
 
+/**
+ * POSTs `body` with a bearer key and reads the reply with `read`. Maps HTTP
+ * errors, aborts, timeouts and network failures to ModelErrors.
+ */
+export async function post<T>(
+	fetchImpl: typeof fetch,
+	url: string,
+	apiKey: string,
+	body: unknown,
+	req: ModelRequest,
+	hadImages: boolean,
+	read: (res: Response) => Promise<T>,
+): Promise<T> {
+	const timeout = AbortSignal.timeout(req.timeoutMs ?? MODEL_TIMEOUT_MS);
+	const signal = req.signal ? AbortSignal.any([req.signal, timeout]) : timeout;
+	let res: Response;
+	try {
+		res = await fetchImpl(url, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${apiKey}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(body),
+			signal,
+		});
+	} catch (err) {
+		throw abortOr(err, req.signal, timeout);
+	}
+	if (!res.ok) {
+		let message = `${res.status} ${res.statusText}`;
+		try {
+			message = ((await res.json()) as ResponseBody)?.error?.message || message;
+		} catch {
+			/* keep status */
+		}
+		throw errorFor(res.status, message, hadImages);
+	}
+	try {
+		return await read(res);
+	} catch (err) {
+		if (err instanceof ModelError) throw err;
+		throw abortOr(err, req.signal, timeout);
+	}
+}
+
 function errorFor(status: number, message: string, hadImages: boolean) {
 	if (status === 401 || status === 403)
 		return new ModelError("auth", `OpenAI rejected the API key: ${message}`);
@@ -179,6 +224,8 @@ export function createOpenAIClient({
 	fetchImpl?: typeof fetch;
 }): ModelClient {
 	const url = `${(baseUrl || OPENAI_BASE).replace(/\/+$/, "")}/responses`;
+	// Compatible endpoints may reject the reasoning field, so only OpenAI gets it.
+	const official = url === `${OPENAI_BASE}/responses`;
 	return {
 		provider: "openai",
 		async complete(req: ModelRequest): Promise<ModelReply> {
@@ -197,45 +244,15 @@ export function createOpenAIClient({
 					: undefined,
 				parallel_tool_calls: req.tools.length ? false : undefined,
 				max_output_tokens: req.maxTokens ?? 16000,
+				reasoning: official && req.effort ? { effort: req.effort } : undefined,
 				store: false,
 				stream,
 			};
-			const timeout = AbortSignal.timeout(req.timeoutMs ?? MODEL_TIMEOUT_MS);
-			const signal = req.signal
-				? AbortSignal.any([req.signal, timeout])
-				: timeout;
-			let res: Response;
-			try {
-				res = await fetchImpl(url, {
-					method: "POST",
-					headers: {
-						Authorization: `Bearer ${apiKey}`,
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(body),
-					signal,
-				});
-			} catch (err) {
-				throw abortOr(err, req.signal, timeout);
-			}
-			if (!res.ok) {
-				let message = `${res.status} ${res.statusText}`;
-				try {
-					message =
-						((await res.json()) as ResponseBody)?.error?.message || message;
-				} catch {
-					/* keep status */
-				}
-				throw errorFor(res.status, message, hadImages);
-			}
-			try {
-				if (!stream)
-					return fromOpenAIResponse((await res.json()) as ResponseBody);
-				return await readStream(res, req.onText);
-			} catch (err) {
-				if (err instanceof ModelError) throw err;
-				throw abortOr(err, req.signal, timeout);
-			}
+			return post(fetchImpl, url, apiKey, body, req, hadImages, async (res) =>
+				stream
+					? readStream(res, req.onText)
+					: fromOpenAIResponse((await res.json()) as ResponseBody),
+			);
 		},
 	};
 }

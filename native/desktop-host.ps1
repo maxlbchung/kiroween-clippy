@@ -4,17 +4,27 @@
 #
 # Protocol: one command per stdin line, fields separated by tabs, starting
 # with a numeric request id. Replies and events are JSON, one per stdout line.
-#   <id> snapshot <maxElements> <budgetMs>
+#   <id> snapshot <maxElements>
 #   <id> bounds <elementId>
 #   <id> click <x> <y> <left|right> <0|1 double>
 #   <id> type <base64 UTF-8 text>
 #   <id> keys <key+key+...>
 #   <id> scroll <x> <y> <dx> <dy>
+#   <id> screenshot <x> <y> <width> <height> <maxEdge>
 #   <id> watch <input 0|1> <undo 0|1>
+#   <id> takeover <0|1>
+#   ping
 #   quit
-# Coordinates are physical screen pixels. Windows owned by -ExcludePid (the
+# Coordinates are physical screen pixels. A screenshot is a JPEG of the given
+# screen rectangle, scaled so its longer edge is at most maxEdge. Windows owned by -ExcludePid (the
 # Clippy app) never appear in snapshots or foreground events. Key events are
 # reported without the key, except that Ctrl+Z is reported as "undo".
+# During a takeover the host discards the user's mouse movement, button
+# presses, wheel turns and key presses (releases pass, so nothing sticks) while
+# its own synthesized input goes through. Esc or Ctrl+Alt+Backspace ends the
+# takeover and emits "cancel"; so do 10 seconds without a stdin line, which is
+# why the app sends "ping" during a takeover. Takeover commands run as soon as
+# they arrive; every other command waits its turn on one worker thread.
 param([int]$ExcludePid = 0)
 
 $ErrorActionPreference = 'Stop'
@@ -23,7 +33,7 @@ $utf8 = New-Object System.Text.UTF8Encoding $false
 [Console]::InputEncoding = $utf8
 
 try {
-  Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, WindowsBase
+  Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, WindowsBase, System.Drawing
 } catch {
   [Console]::Out.WriteLine('{"type":"error","code":"no-uia","message":"UI Automation is not available on this PC."}')
   exit 2
@@ -32,15 +42,21 @@ $refs = @(
   [System.Windows.Automation.AutomationElement].Assembly.Location,
   [System.Windows.Automation.ControlType].Assembly.Location,
   [System.Windows.Rect].Assembly.Location,
+  [System.Drawing.Bitmap].Assembly.Location,
   [System.Diagnostics.Stopwatch].Assembly.Location,
   [System.Collections.Generic.HashSet[int]].Assembly.Location
 ) | Select-Object -Unique
 
 $source = @'
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -68,7 +84,7 @@ public static class ClippyDesktopHost
                 case '\r': sb.Append("\\r"); break;
                 case '\t': sb.Append("\\t"); break;
                 default:
-                    if (c < 0x20 || c == ' ' || c == ' ') sb.AppendFormat("\\u{0:x4}", (int)c);
+                    if (c < 0x20 || c == (char)0x2028 || c == (char)0x2029) sb.AppendFormat("\\u{0:x4}", (int)c);
                     else sb.Append(c);
                     break;
             }
@@ -319,7 +335,7 @@ public static class ClippyDesktopHost
         "DataItem", "Document", "Menu", "MenuBar", "Tab", "List", "Tree", "Table", "ScrollBar"
     });
 
-    static CacheRequest MakeCache()
+    static CacheRequest MakeCache(TreeScope scope)
     {
         var cr = new CacheRequest();
         cr.Add(AutomationElement.NameProperty);
@@ -327,12 +343,12 @@ public static class ClippyDesktopHost
         cr.Add(AutomationElement.BoundingRectangleProperty);
         cr.Add(AutomationElement.IsEnabledProperty);
         cr.Add(AutomationElement.HasKeyboardFocusProperty);
-        cr.Add(AutomationElement.IsOffscreenProperty);
         cr.Add(AutomationElement.IsPasswordProperty);
-        cr.Add(AutomationElement.RuntimeIdProperty);
         cr.Add(ValuePattern.ValueProperty);
-        cr.TreeFilter = Automation.ControlViewCondition;
-        cr.TreeScope = TreeScope.Element;
+        // Off-screen elements are left out; their on-screen descendants move up to the nearest kept ancestor.
+        cr.TreeFilter = new AndCondition(Automation.ControlViewCondition,
+            new PropertyCondition(AutomationElement.IsOffscreenProperty, false));
+        cr.TreeScope = scope;
         cr.AutomationElementMode = AutomationElementMode.Full;
         return cr;
     }
@@ -343,25 +359,19 @@ public static class ClippyDesktopHost
         catch { return null; }
     }
 
-    static string RuntimeKey(AutomationElement el)
-    {
-        var id = Cached(el, AutomationElement.RuntimeIdProperty) as int[];
-        if (id == null) return null;
-        var parts = new string[id.Length];
-        for (int i = 0; i < id.Length; i++) parts[i] = id[i].ToString(CultureInfo.InvariantCulture);
-        return string.Join(".", parts);
-    }
-
     class Node
     {
         public AutomationElement El;
+        public Node Parent;
         public int Depth;
         public bool Chain;
     }
 
-    static string Snapshot(int maxElements, int budgetMs)
+    const int FullReadMs = 1200;
+    const int SnapshotMs = 2000;
+
+    static string Snapshot(int maxElements)
     {
-        var sw = Stopwatch.StartNew();
         var windows = new List<string>();
         EnumWindows(delegate (IntPtr h, IntPtr l)
         {
@@ -375,71 +385,56 @@ public static class ClippyDesktopHost
         bool truncated = false;
         if (target != IntPtr.Zero)
         {
-            var cr = MakeCache();
-            var walker = TreeWalker.ControlViewWalker;
             var nodes = new List<Node>();
-            var seen = new HashSet<string>();
-            AutomationElement root = null;
-            using (cr.Activate())
+            var clock = Stopwatch.StartNew();
+            AutomationElement window = null, root = null, whole = null;
+            try { window = AutomationElement.FromHandle(target); } catch { }
+            // One cross-process call reads the whole tree. A tree too big for
+            // FullReadMs is read level by level until SnapshotMs instead.
+            // ponytail: an abandoned whole-tree read keeps its thread until UIA returns; reuse one reader thread if huge windows get snapshotted back to back.
+            var read = new Thread(delegate () { try { whole = window.GetUpdatedCache(MakeCache(TreeScope.Subtree)); } catch { } });
+            read.IsBackground = true;
+            if (window != null) read.Start();
+            bool full = window != null && read.Join(FullReadMs) && whole != null;
+            CacheRequest level = MakeCache(TreeScope.Element);
+            if (full) root = whole;
+            else if (window != null)
             {
-                try { root = AutomationElement.FromHandle(target); } catch { root = null; }
+                truncated = true;
+                try { root = window.GetUpdatedCache(level); } catch { root = null; }
             }
             if (root != null)
             {
-                // Focused element and its ancestors first, so truncation keeps them.
-                try
-                {
-                    var chain = new List<AutomationElement>();
-                    var el = AutomationElement.FocusedElement;
-                    int guard = 0;
-                    while (el != null && guard++ < 40)
-                    {
-                        AutomationElement cached = el.GetUpdatedCache(cr);
-                        chain.Add(cached);
-                        if (Automation.Compare(el, root)) { chain.Reverse(); break; }
-                        el = walker.GetParent(el);
-                        if (el == null) chain.Clear();
-                    }
-                    for (int i = 0; i < chain.Count; i++)
-                    {
-                        string key = RuntimeKey(chain[i]);
-                        if (key != null) seen.Add(key);
-                        nodes.Add(new Node { El = chain[i], Depth = i, Chain = true });
-                    }
-                }
-                catch { }
-
+                var all = new List<Node>();
+                Node focused = null;
                 var queue = new Queue<Node>();
-                queue.Enqueue(new Node { El = root, Depth = 0, Chain = false });
+                queue.Enqueue(new Node { El = root });
                 while (queue.Count > 0)
                 {
-                    if (nodes.Count >= maxElements || sw.ElapsedMilliseconds > budgetMs) { truncated = true; break; }
                     Node n = queue.Dequeue();
-                    AutomationElement cur = n.El;
-                    if (n.Depth > 0)
-                    {
-                        object off = Cached(cur, AutomationElement.IsOffscreenProperty);
-                        if (off is bool && (bool)off) continue;
-                    }
-                    string key = RuntimeKey(cur);
-                    if (key == null || !seen.Contains(key))
-                    {
-                        if (key != null) seen.Add(key);
-                        if (Worth(cur)) nodes.Add(n);
-                    }
+                    all.Add(n);
+                    object focus = Cached(n.El, AutomationElement.HasKeyboardFocusProperty);
+                    if (focused == null && focus is bool && (bool)focus) focused = n;
                     if (n.Depth >= 25) continue;
-                    try
+                    AutomationElementCollection kids = null;
+                    if (full) kids = n.El.CachedChildren;
+                    else if (clock.ElapsedMilliseconds < SnapshotMs)
                     {
-                        AutomationElement child = walker.GetFirstChild(cur, cr);
-                        while (child != null)
-                        {
-                            queue.Enqueue(new Node { El = child, Depth = n.Depth + 1, Chain = false });
-                            if (queue.Count > maxElements * 4) break;
-                            child = walker.GetNextSibling(child, cr);
-                        }
+                        try { using (level.Activate()) kids = n.El.FindAll(TreeScope.Children, level.TreeFilter); }
+                        catch { kids = null; }
                     }
-                    catch { }
+                    if (kids == null) continue;
+                    foreach (AutomationElement child in kids)
+                        queue.Enqueue(new Node { El = child, Parent = n, Depth = n.Depth + 1 });
                 }
+                // Focused element and its ancestors first, so truncation keeps them.
+                for (Node n = focused; n != null; n = n.Parent)
+                {
+                    n.Chain = true;
+                    nodes.Insert(0, n);
+                }
+                foreach (Node n in all)
+                    if (!n.Chain && Worth(n.El)) nodes.Add(n);
             }
 
             int count = 0;
@@ -671,6 +666,33 @@ public static class ClippyDesktopHost
         Send(batch);
     }
 
+    // Screenshots
+
+    static string Screenshot(int x, int y, int w, int h, int maxEdge)
+    {
+        double k = Math.Min(1.0, maxEdge / (double)Math.Max(w, h));
+        int ow = Math.Max(1, (int)Math.Round(w * k));
+        int oh = Math.Max(1, (int)Math.Round(h * k));
+        using (var full = new Bitmap(w, h, PixelFormat.Format24bppRgb))
+        using (var shot = new Bitmap(ow, oh, PixelFormat.Format24bppRgb))
+        using (var bytes = new MemoryStream())
+        {
+            using (var g = Graphics.FromImage(full)) g.CopyFromScreen(x, y, 0, 0, new Size(w, h));
+            using (var g = Graphics.FromImage(shot))
+            {
+                g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                g.DrawImage(full, 0, 0, ow, oh);
+            }
+            var jpeg = Array.Find(ImageCodecInfo.GetImageEncoders(), c => c.MimeType == "image/jpeg");
+            var quality = new EncoderParameters(1);
+            quality.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 82L);
+            shot.Save(bytes, jpeg, quality);
+            return "{\"width\":" + ow.ToString(CultureInfo.InvariantCulture)
+                + ",\"height\":" + oh.ToString(CultureInfo.InvariantCulture)
+                + ",\"data\":\"" + Convert.ToBase64String(bytes.ToArray()) + "\"}";
+        }
+    }
+
     // Hooks
 
     static uint hookThreadId;
@@ -686,15 +708,32 @@ public static class ClippyDesktopHost
     static bool anchored;
     static long lastMoveEmit;
     static IntPtr lastForeground = IntPtr.Zero;
+    static volatile bool takeover;
+    static readonly BlockingCollection<string[]> work = new BlockingCollection<string[]>();
+    static volatile int lastLine = Environment.TickCount;
+    static bool ctrlDown;
+    static bool altDown;
+    static readonly ManualResetEvent applied = new ManualResetEvent(false);
+    static Timer watchdog;
+
+    static void EndTakeover(string reason)
+    {
+        if (!takeover) return;
+        takeover = false;
+        Emit("{\"type\":\"cancel\",\"reason\":\"" + reason + "\"}");
+    }
 
     static IntPtr OnMouse(int code, IntPtr wParam, IntPtr lParam)
     {
-        if (code >= 0 && wantInput)
+        if (code >= 0 && (wantInput || takeover))
         {
             var info = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
+            int msg = wParam.ToInt32();
+            bool release = msg == 0x202 || msg == 0x205 || msg == 0x208 || msg == 0x20C;
+            if (takeover && !release && (info.flags & LLMHF_INJECTED) == 0) return (IntPtr)1;
+            if (!wantInput) return CallNextHookEx(mouseHook, code, wParam, lParam);
             if ((info.flags & LLMHF_INJECTED) == 0)
             {
-                int msg = wParam.ToInt32();
                 if (msg == 0x200)
                 {
                     if (!anchored) { anchor = info.pt; anchored = true; }
@@ -732,7 +771,16 @@ public static class ClippyDesktopHost
         {
             int msg = wParam.ToInt32();
             var info = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
-            if ((msg == 0x100 || msg == 0x104) && (info.flags & LLKHF_INJECTED) == 0)
+            bool down = msg == 0x100 || msg == 0x104;
+            bool user = (info.flags & LLKHF_INJECTED) == 0;
+            if (user && (info.vkCode == 0xA2 || info.vkCode == 0xA3)) ctrlDown = down;
+            if (user && (info.vkCode == 0xA4 || info.vkCode == 0xA5)) altDown = down;
+            if (takeover && user && down)
+            {
+                if (info.vkCode == 0x1B || (info.vkCode == 0x08 && ctrlDown && altDown)) EndTakeover("key");
+                return (IntPtr)1;
+            }
+            if (down && user)
             {
                 if (wantInput) Emit("{\"type\":\"input\",\"kind\":\"key\"}");
                 if (wantUndo && info.vkCode == 0x5A && (GetAsyncKeyState(0x11) & 0x8000) != 0)
@@ -765,8 +813,8 @@ public static class ClippyDesktopHost
     static void ApplyWatch()
     {
         IntPtr user32 = LoadLibrary("user32.dll");
-        bool needMouse = wantInput;
-        bool needKeys = wantInput || wantUndo;
+        bool needMouse = wantInput || takeover;
+        bool needKeys = wantInput || wantUndo || takeover;
         if (needMouse && mouseHook == IntPtr.Zero)
         {
             anchored = false;
@@ -783,6 +831,15 @@ public static class ClippyDesktopHost
             UnhookWindowsHookEx(keyHook);
             keyHook = IntPtr.Zero;
         }
+        applied.Set();
+    }
+
+    /** Installs the hooks a watch or takeover needs, waiting for the hook thread. */
+    static void Rehook()
+    {
+        applied.Reset();
+        PostThreadMessage(hookThreadId, WM_APP_WATCH, IntPtr.Zero, IntPtr.Zero);
+        applied.WaitOne(2000);
     }
 
     static void HookThread(object ready)
@@ -821,7 +878,7 @@ public static class ClippyDesktopHost
             switch (cmd)
             {
                 case "snapshot":
-                    Reply(id, Snapshot(Int(f[2]), Int(f[3])));
+                    Reply(id, Snapshot(Int(f[2])));
                     break;
                 case "bounds":
                     Reply(id, ElementBounds(f[2]));
@@ -842,11 +899,25 @@ public static class ClippyDesktopHost
                     Scroll(Int(f[2]), Int(f[3]), Int(f[4]), Int(f[5]));
                     Reply(id, "true");
                     break;
+                case "screenshot":
+                    Reply(id, Screenshot(Int(f[2]), Int(f[3]), Int(f[4]), Int(f[5]), Int(f[6])));
+                    break;
                 case "watch":
                     wantInput = f[2] == "1";
                     wantUndo = f[3] == "1";
-                    PostThreadMessage(hookThreadId, WM_APP_WATCH, IntPtr.Zero, IntPtr.Zero);
+                    Rehook();
                     Reply(id, "true");
+                    break;
+                case "takeover":
+                    lastLine = Environment.TickCount;
+                    takeover = f[2] == "1";
+                    Rehook();
+                    if (takeover && (mouseHook == IntPtr.Zero || keyHook == IntPtr.Zero))
+                    {
+                        takeover = false;
+                        Fail(id, "Could not hook the mouse and keyboard");
+                    }
+                    else Reply(id, "true");
                     break;
                 default:
                     Fail(id, "Unknown command: " + cmd);
@@ -869,14 +940,24 @@ public static class ClippyDesktopHost
         t.IsBackground = true;
         t.Start(ready);
         ready.WaitOne(5000);
+        watchdog = new Timer(delegate
+        {
+            if (takeover && Environment.TickCount - lastLine > 10000) EndTakeover("timeout");
+        }, null, 500, 500);
+        var worker = new Thread(delegate () { foreach (var f in work.GetConsumingEnumerable()) Handle(f); });
+        worker.IsBackground = true;
+        worker.Start();
         Emit("{\"type\":\"ready\"}");
         string line;
         while ((line = Console.In.ReadLine()) != null)
         {
-            line = line.Trim('﻿', '\r', '\n');
-            if (line.Length == 0) continue;
+            lastLine = Environment.TickCount;
+            line = line.Trim((char)0xFEFF, '\r', '\n');
+            if (line.Length == 0 || line == "ping") continue;
             if (line == "quit") break;
-            Handle(line.Split('\t'));
+            string[] f = line.Split('\t');
+            if (f.Length > 1 && f[1] == "takeover") Handle(f);
+            else work.Add(f);
         }
         Environment.Exit(0);
     }

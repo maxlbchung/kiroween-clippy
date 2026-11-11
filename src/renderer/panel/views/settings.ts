@@ -37,7 +37,7 @@ const PROVIDERS: {
 	},
 	{
 		id: "compatible",
-		name: "OpenAI-compatible (Responses API)",
+		name: "OpenAI-compatible (Chat Completions)",
 		secret: "custom",
 		keyLabel: "Compatible endpoint",
 		keyHint: "key",
@@ -204,6 +204,10 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
         <legend>API key</legend>
         ${keyRow(prov.secret, prov.keyLabel, s.secrets[prov.secret], prov.keyHint)}
         <p class="hint key-note">${icon("lock", 12)} ${s.encryption ? `Keys are encrypted ${ctx.api.platform === "win32" ? "with Windows DPAPI" : "by your OS keychain"} and stay on this PC.` : "OS encryption unavailable — keys are stored locally without encryption."}</p>
+      </fieldset>
+      <fieldset class="group">
+        <legend>Auto mode</legend>
+        <label class="check"><input type="checkbox" data-path="ai.autoMode" ${s.ai.autoMode ? "checked" : ""}> <span>Do everything without asking<br><span class="hint">Baby Clippy sends, deletes, buys and runs commands without a Yes/No check first. Esc still stops him.</span></span></label>
       </fieldset>
       <fieldset class="group">
         <legend>Tips</legend>

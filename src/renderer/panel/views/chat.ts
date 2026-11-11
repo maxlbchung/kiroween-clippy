@@ -18,13 +18,36 @@ const SUGGESTIONS = [
 // Survives panel close/re-open (the panel window stays alive).
 const state: {
 	messages: ChatMessage[];
-	streamId: string | null;
+	/** The reply being streamed and the id of its request. */
+	stream: { id: string; msg: ChatMessage } | null;
 	error: string | null;
 	draft: string;
-} = { messages: [], streamId: null, error: null, draft: "" };
+} = { messages: [], stream: null, error: null, draft: "" };
 
-// Re-renders the mounted view; a no-op while the chat view is not shown.
+// Hooks into the mounted view; no-ops while the chat view is not shown.
+// `refresh` re-renders the log and `updateStream` the streaming reply.
 let refresh: () => void = () => {};
+let updateStream: () => void = () => {};
+
+// Replies stream while the chat view may be unmounted, so they are recorded
+// at module level. Text goes to the streaming message wherever it sits in
+// the log, since a task note can land after it.
+api.onChat((evt: ChatEvent) => {
+	const s = state.stream;
+	if (!s || evt.id !== s.id) return;
+	if (evt.type === "delta") {
+		s.msg.content += evt.text;
+		updateStream();
+		return;
+	}
+	state.stream = null;
+	if (!s.msg.content) state.messages.splice(state.messages.indexOf(s.msg), 1);
+	if (evt.type === "error") {
+		state.error = evt.message || "Something went wrong.";
+		sfx.error();
+	} else sfx.boop();
+	refresh();
+});
 
 // Task results arrive while the chat view may be unmounted, so they are
 // recorded at module level.
@@ -64,8 +87,6 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	const form = $(".chat-input", el);
 	const input = $("textarea", el) as HTMLTextAreaElement;
 	const sendBtn = $(".send-btn", el) as HTMLButtonElement;
-	let offChat: (() => void) | null = null;
-
 	const nearBottom = () =>
 		log.scrollHeight - log.scrollTop - log.clientHeight < 60;
 	const scrollDown = (smooth = true) =>
@@ -84,10 +105,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 	}
 
 	function msgHtml(m: ChatMessage, i: number) {
-		const streaming =
-			state.streamId &&
-			i === state.messages.length - 1 &&
-			m.role === "assistant";
+		const streaming = state.stream?.msg === m;
 		if (m.role === "user")
 			return `<div class="msg msg-me" data-i="${i}"><div class="msg-card">${format(m.content)}</div></div>`;
 		const body = m.content
@@ -111,14 +129,14 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 
 	/** The send button doubles as Stop while a reply streams. */
 	function syncSend() {
-		sendBtn.innerHTML = state.streamId
+		sendBtn.innerHTML = state.stream
 			? '<span class="stop-sq"></span>'
 			: icon("send", 16);
-		sendBtn.setAttribute("aria-label", state.streamId ? "Stop" : "Send");
+		sendBtn.setAttribute("aria-label", state.stream ? "Stop" : "Send");
 	}
 
 	function updateLast() {
-		const i = state.messages.length - 1;
+		const i = state.stream ? state.messages.indexOf(state.stream.msg) : -1;
 		const node = log.querySelector<HTMLElement>(`[data-i="${i}"]`);
 		if (!node) return render();
 		const stick = nearBottom();
@@ -144,18 +162,19 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 
 	function ask() {
 		const id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-		state.streamId = id;
+		const history = state.messages.filter((m) => m.content);
+		const msg: ChatMessage = { role: "assistant", content: "" };
+		state.stream = { id, msg };
 		state.error = null;
-		state.messages.push({ role: "assistant", content: "" });
+		state.messages.push(msg);
 		appendNode(state.messages.length - 1);
 		syncSend();
-		const history = state.messages.slice(0, -1).filter((m) => m.content);
 		ctx.api.chatSend(id, history);
 	}
 
 	function send(text: string) {
 		const t = text.trim();
-		if (!t || state.streamId) return;
+		if (!t || state.stream) return;
 		sfx.send();
 		state.messages.push({ role: "user", content: t });
 		appendNode(state.messages.length - 1);
@@ -165,29 +184,6 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		ask();
 	}
 
-	offChat = ctx.api.onChat((evt: ChatEvent) => {
-		if (evt.id !== state.streamId) return;
-		const last = state.messages[state.messages.length - 1];
-		if (evt.type === "delta") {
-			last.content += evt.text;
-			updateLast();
-		} else {
-			state.streamId = null;
-			if (evt.type === "error") {
-				state.error = evt.message || "Something went wrong.";
-				if (!last.content) state.messages.pop();
-				sfx.error();
-				render();
-				scrollDown();
-			} else {
-				if (!last.content) state.messages.pop();
-				updateLast();
-				sfx.boop();
-			}
-			syncSend();
-		}
-	});
-
 	function autosize() {
 		input.style.height = "auto";
 		input.style.height = `${Math.min(96, input.scrollHeight)}px`;
@@ -195,7 +191,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 
 	form.addEventListener("submit", (e) => {
 		e.preventDefault();
-		if (state.streamId) ctx.api.chatCancel(state.streamId);
+		if (state.stream) ctx.api.chatCancel(state.stream.id);
 		else send(input.value);
 	});
 	input.addEventListener("input", () => {
@@ -228,9 +224,9 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			sfx.close();
 			ctx.close();
 		} else if (b.dataset.act === "new") {
-			if (state.streamId) ctx.api.chatCancel(state.streamId);
+			if (state.stream) ctx.api.chatCancel(state.stream.id);
 			state.messages = [];
-			state.streamId = null;
+			state.stream = null;
 			state.error = null;
 			render();
 			input.focus();
@@ -249,6 +245,7 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 		render();
 		scrollDown();
 	};
+	updateStream = updateLast;
 
 	return {
 		onEnter() {
@@ -258,8 +255,8 @@ export function mount(el: HTMLElement, ctx: RendererContext) {
 			input.focus();
 		},
 		unmount() {
-			if (offChat) offChat();
 			refresh = () => {};
+			updateStream = () => {};
 		},
 	};
 }

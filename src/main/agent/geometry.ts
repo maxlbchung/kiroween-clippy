@@ -122,6 +122,51 @@ export function walkDuration(from: Point, to: Point): number {
 	return Math.round(clamp(250 + d * 0.6, 300, 1000));
 }
 
+/** Baby Clippy's size as a share of the Pet's Clippy figure. */
+export const HELPER_SCALE = 0.4;
+const HELPER_GAP = 8;
+
+/** Baby Clippy's size in DIP at pet scale `scale`. */
+export function helperSize(scale: number) {
+	const k = scale * HELPER_SCALE;
+	return { width: PET.svg.width * k, height: PET.svg.height * k };
+}
+
+/** Baby Clippy's slide time: 150 to 600 ms by distance, 0 when he stays put. */
+export function helperMoveMs(from: Point, to: Point): number {
+	const d = Math.hypot(to.x - from.x, to.y - from.y);
+	return d < 1 ? 0 : Math.round(clamp(120 + d * 0.4, 150, 600));
+}
+
+/** Baby Clippy's box beside the Pet's body box, bottoms aligned. */
+export function helperBesidePet(body: Rect, scale: number): Rect {
+	const s = helperSize(scale);
+	return {
+		x: body.x + body.width + HELPER_GAP,
+		y: body.y + body.height - s.height,
+		...s,
+	};
+}
+
+/**
+ * Baby Clippy's box beside the point he works at: below and right of it,
+ * flipped to the other side of the point at the display's right or bottom edge.
+ */
+export function helperBesidePoint(
+	p: Point,
+	scale: number,
+	display: Rect,
+): Rect {
+	const s = helperSize(scale);
+	const right = p.x + HELPER_GAP + s.width <= display.x + display.width;
+	const below = p.y + HELPER_GAP + s.height <= display.y + display.height;
+	return {
+		x: right ? p.x + HELPER_GAP : p.x - HELPER_GAP - s.width,
+		y: below ? p.y + HELPER_GAP : p.y - HELPER_GAP - s.height,
+		...s,
+	};
+}
+
 export const TITLE_MAX = 60;
 
 /** Truncates an Outline description to 60 characters, ending in an ellipsis. */

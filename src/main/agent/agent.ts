@@ -24,6 +24,7 @@ import {
 	TOOLS,
 } from "./actions.js";
 import { createAnthropicClient } from "./anthropic.js";
+import { createChatCompletionsClient } from "./chat-completions.js";
 import { placeNear, walkDuration } from "./geometry.js";
 import type {
 	HistoryItem,
@@ -49,6 +50,7 @@ export const MAX_CHAT_MESSAGES = 40;
 const MAX_CHAT_TURNS = 6;
 const DIRECT_SUMMARY_MAX = 80;
 const SUMMARY_MAX = 200;
+const NOTE_MAX = 400;
 
 type Origin = "chat" | "direct" | "tip";
 
@@ -108,6 +110,8 @@ export function createAgent({
 }) {
 	let home: Point | null = null;
 	let current: { ctrl: AbortController; done: Promise<void> } | null = null;
+	/** Tasks between ending the running Task and becoming `current`. */
+	let starting = 0;
 
 	// Models
 
@@ -126,10 +130,12 @@ export function createAgent({
 		const apiKey = await settings.getSecret(KEY_FOR[p]);
 		if (!apiKey) return null;
 		if (p === "anthropic") return createAnthropicClient({ apiKey });
-		return createOpenAIClient({
-			apiKey,
-			baseUrl: p === "compatible" ? settings.data.ai.baseUrl : undefined,
-		});
+		if (p === "compatible")
+			return createChatCompletionsClient({
+				apiKey,
+				baseUrl: settings.data.ai.baseUrl,
+			});
+		return createOpenAIClient({ apiKey });
 	}
 
 	function missingKeyMessage() {
@@ -183,6 +189,8 @@ export function createAgent({
 		hideBubble: () => overlay.hideBubble(),
 		walkTo,
 		goHome,
+		helper: (spec) => overlay.helper(spec),
+		banner: (text) => overlay.banner(text),
 		mood: (m) => pet.send("pet:mood", m),
 		onOutlineButton: (cb) => {
 			overlay.on("outline-button", cb);
@@ -216,6 +224,12 @@ export function createAgent({
 		await t.done.catch(() => {});
 	}
 
+	// Esc or the Stop_Hotkey during a takeover, which the host keeps from other apps.
+	host.on("cancel", (e: { reason: string }) => {
+		console.error(`[agent] takeover ended by ${e.reason}`);
+		void stopTask();
+	});
+
 	/**
 	 * Starts a Task, ending any running one first. Returns false when the
 	 * provider has no key (the user is told).
@@ -226,10 +240,17 @@ export function createAgent({
 		origin: Origin,
 		signal?: AbortSignal,
 	): Promise<boolean> {
-		await stopTask();
-		const c = await client();
+		starting++;
+		let c: ModelClient | null;
+		try {
+			await stopTask();
+			c = await client();
+		} finally {
+			starting--;
+		}
 		if (!c) {
-			void announce(missingKeyMessage());
+			// The Direct panel shows its own rejection message.
+			if (origin !== "direct") void announce(missingKeyMessage());
 			return false;
 		}
 		const ctrl = new AbortController();
@@ -252,7 +273,14 @@ export function createAgent({
 			let outcome: TaskOutcome;
 			try {
 				outcome = await runner.run(
-					{ goal, mode, client: c, model, effort: "medium" },
+					{
+						goal,
+						mode,
+						client: c,
+						model,
+						effort: "medium",
+						auto: settings.data.ai.autoMode,
+					},
 					ctrl.signal,
 				);
 			} finally {
@@ -270,18 +298,18 @@ export function createAgent({
 		aborted: boolean,
 	) {
 		// A task replaced by a newer one leaves the stage to the new task.
-		if (aborted && current) return;
+		if (aborted && (current || starting)) return;
 		const summary = clip(
 			outcome.summary,
 			origin === "direct" ? DIRECT_SUMMARY_MAX : SUMMARY_MAX,
 		);
 		pet.send("pet:mood", outcome.success ? "happy" : null);
 		setTimeout(() => pet.send("pet:mood", null), 1400);
-		void announce(summary);
+		// Chat tasks report back in the chat they came from, not over it.
 		if (origin === "chat") {
-			panels.send("chat:note", { text: outcome.summary });
+			panels.send("chat:note", { text: clip(outcome.summary, NOTE_MAX) });
 			void panels.open("chat");
-		}
+		} else void announce(summary);
 	}
 
 	// Chat
@@ -295,13 +323,13 @@ export function createAgent({
 		{ signal, onText }: { signal: AbortSignal; onText: (t: string) => void },
 	): Promise<ChatResult> {
 		const c = await client();
-		if (!c) {
-			void announce(missingKeyMessage());
-			throw new Error(missingKeyMessage());
-		}
+		// The chat panel shows the error; a bubble would repeat it.
+		if (!c) throw new Error(missingKeyMessage());
 		const snap = await screen.snapshot();
 		const recent = messages.slice(-MAX_CHAT_MESSAGES);
 		while (recent.length && recent[0].role !== "user") recent.shift();
+		// A request ends with the user's turn; a retry after a partial reply or a task note does not.
+		while (recent.at(-1)?.role === "assistant") recent.pop();
 		const history: HistoryItem[] = recent.map((m, i) =>
 			m.role === "assistant"
 				? assistantText(c.provider, m.content)
@@ -320,9 +348,16 @@ export function createAgent({
 		);
 		const tools = TASK_TOOLS.chat.map((t) => TOOLS[t]);
 		let wrote = false;
+		let silent = true;
 		const emit = (t: string) => {
 			wrote = true;
+			silent = false;
 			onText(t);
+		};
+		/** Ends a reply without a Task, saying something when the model said nothing. */
+		const none = (): ChatResult => {
+			if (silent) onText("Hmm, I came up empty on that one. Ask me again?");
+			return { task: null };
 		};
 		for (let turn = 0; turn < MAX_CHAT_TURNS; turn++) {
 			if (wrote) onText("\n\n");
@@ -337,8 +372,8 @@ export function createAgent({
 				onText: emit,
 			});
 			if (reply.stop === "refusal" && !reply.text)
-				onText("Sorry, I can't help with that one.");
-			if (!reply.calls.length) return { task: null };
+				emit("Sorry, I can't help with that one.");
+			if (!reply.calls.length) return none();
 			history.push({
 				role: "assistant",
 				text: reply.text,
@@ -397,7 +432,7 @@ export function createAgent({
 			if (task) return { task };
 			history.push({ role: "tool", results });
 		}
-		return { task: null };
+		return none();
 	}
 
 	// Direct
@@ -405,15 +440,13 @@ export function createAgent({
 	async function direct(command: string): Promise<DirectResult> {
 		const text = String(command || "").trim();
 		if (!text) return { status: "empty" };
-		if (!hasKey()) {
-			void announce(missingKeyMessage());
-			return { status: "rejected", message: missingKeyMessage() };
-		}
-		if (!screen.canAct) {
-			const message = "Doing tasks for you needs Windows.";
-			void announce(message);
-			return { status: "rejected", message };
-		}
+		// The Direct panel shows the message; a bubble would repeat it.
+		if (!hasKey()) return { status: "rejected", message: missingKeyMessage() };
+		if (!screen.canAct)
+			return {
+				status: "rejected",
+				message: "Doing tasks for you needs Windows.",
+			};
 		const started = await startTask(text, "do", "direct");
 		return started
 			? { status: "started" }
@@ -432,7 +465,8 @@ export function createAgent({
 	function gateState() {
 		return {
 			enabled: tipsOn(),
-			taskRunning: !!current || isPlaying(),
+			// An open panel follows the Pet, so a tip must not walk him away.
+			taskRunning: !!current || isPlaying() || panels.visible,
 			petVisible: pet.visible,
 			bubbleVisible: overlay.bubbleVisible,
 			hasKey: hasKey(),

@@ -185,3 +185,82 @@ body {
 	background: rgba(0, 0, 0, 0.08);
 	color: var(--ink);
 }
+
+/* Takeover banner: a window title bar across the top while Clippy has control. */
+#banner {
+	position: absolute;
+	top: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 0 12px;
+	border: 2px solid var(--title-b);
+	box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.15s;
+}
+#banner.show {
+	opacity: 1;
+}
+
+/* Baby Clippy: a small copy of Clippy that slides to each target and acts there. */
+#helper {
+	position: absolute;
+	left: 0;
+	top: 0;
+	pointer-events: none;
+	opacity: 0;
+	transition-property: left, top, opacity;
+	transition-timing-function: ease-in-out;
+}
+#helper.show {
+	opacity: 1;
+}
+#helper svg {
+	width: 100%;
+	height: 100%;
+	transform-origin: 50% 100%;
+}
+#helper[data-act="click"] svg {
+	animation: helper-click 0.35s ease-out;
+}
+#helper[data-act="type_text"] svg {
+	animation: helper-type 0.18s ease-in-out 4;
+}
+#helper[data-act="press_keys"] svg {
+	animation: helper-keys 0.4s ease-out;
+}
+#helper[data-act="scroll"] svg {
+	animation: helper-scroll 0.25s ease-in-out 2;
+}
+@keyframes helper-click {
+	40% {
+		transform: scale(1.12, 0.82);
+	}
+}
+@keyframes helper-type {
+	25% {
+		transform: rotate(-7deg);
+	}
+	75% {
+		transform: rotate(7deg);
+	}
+}
+@keyframes helper-keys {
+	30% {
+		transform: translateY(-12%);
+	}
+	60% {
+		transform: scale(1.06, 0.9);
+	}
+}
+@keyframes helper-scroll {
+	50% {
+		transform: translateY(10%);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	#helper[data-act] svg {
+		animation: none;
+	}
+}

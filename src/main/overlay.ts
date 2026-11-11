@@ -1,16 +1,27 @@
 // Transparent, always-on-top, click-through windows, one per display, where
-// the agent draws Outlines and its speech bubble. Only the title bar and the
-// bubble take clicks, and the windows never take focus from other apps.
+// the agent draws Outlines, its speech bubble, baby Clippy and the takeover
+// banner. Only the title bar and the bubble take clicks, and the windows
+// never take focus from other apps.
 
 import { EventEmitter } from "node:events";
 import { BrowserWindow, type Display, screen } from "electron";
+import { PET } from "../shared/layout.js";
 import type {
+	HelperAct,
 	OverlayEvent,
+	OverlayHelper,
 	OverlayOutline,
 	OverlayState,
+	Point,
 	Rect,
 } from "../shared/types.js";
-import { titleBarSide, truncateTitle } from "./agent/geometry.js";
+import {
+	helperBesidePet,
+	helperBesidePoint,
+	helperMoveMs,
+	titleBarSide,
+	truncateTitle,
+} from "./agent/geometry.js";
 import type { BubbleButton, OutlineSpec } from "./agent/runner.js";
 
 const TITLE_BAR_HEIGHT = 26;
@@ -48,6 +59,9 @@ export class Overlay extends EventEmitter {
 	bubble: Bubble | null = null;
 	anchor: Rect | null = null;
 	nextBubble = 1;
+	/** Baby Clippy in screen DIP. */
+	helperState: OverlayHelper | null = null;
+	bannerText: string | null = null;
 
 	constructor({ preload, url }: { preload: string; url: string }) {
 		super();
@@ -181,10 +195,58 @@ export class Overlay extends EventEmitter {
 		this.render();
 	}
 
+	/**
+	 * Shows baby Clippy beside `at` (screen DIP), or where he is when `at`
+	 * is omitted, starting beside the Pet, and plays `act`. null removes
+	 * him. Resolves when his slide ends.
+	 */
+	helper(spec: { at?: Point; act?: HelperAct } | null): Promise<void> {
+		const prev = this.helperState;
+		if (!spec) {
+			this.helperState = null;
+			this.render();
+			return Promise.resolve();
+		}
+		const body = this.anchor;
+		const scale = body ? body.height / PET.body.height : 1;
+		let rect = prev?.rect;
+		if (spec.at)
+			rect = helperBesidePoint(
+				spec.at,
+				scale,
+				screen.getDisplayNearestPoint({
+					x: Math.round(spec.at.x),
+					y: Math.round(spec.at.y),
+				}).bounds,
+			);
+		rect ??= body ? helperBesidePet(body, scale) : undefined;
+		if (!rect) return Promise.resolve();
+		const moveMs = prev ? helperMoveMs(prev.rect, rect) : 0;
+		this.helperState = {
+			rect,
+			moveMs,
+			act: spec.act ?? null,
+			actId: (prev?.actId ?? 0) + (spec.act ? 1 : 0),
+		};
+		this.render();
+		return new Promise((resolve) => setTimeout(resolve, moveMs));
+	}
+
+	/** Shows the takeover banner on every display, or hides it. */
+	banner(text: string | null) {
+		this.bannerText = text;
+		this.render();
+	}
+
 	render() {
 		const displays = screen.getAllDisplays();
 		for (const d of displays) {
-			const state: OverlayState = { outline: null, bubble: null };
+			const state: OverlayState = {
+				outline: null,
+				bubble: null,
+				helper: null,
+				banner: this.bannerText,
+			};
 			const o = this.outlineSpec;
 			if (o && centerIn(o.rect, d.bounds))
 				state.outline = this.localOutline(o, d);
@@ -195,7 +257,11 @@ export class Overlay extends EventEmitter {
 					buttons: this.bubble.buttons,
 					anchor: local(this.anchor, d.bounds),
 				};
-			const empty = !state.outline && !state.bubble;
+			const h = this.helperState;
+			if (h && centerIn(h.rect, d.bounds))
+				state.helper = { ...h, rect: local(h.rect, d.bounds) };
+			const empty =
+				!state.outline && !state.bubble && !state.helper && !state.banner;
 			const win = this.wins.get(d.id);
 			if (empty && !win) continue;
 			const w = win ?? this.windowFor(d);
@@ -224,6 +290,8 @@ export class Overlay extends EventEmitter {
 	dispose() {
 		this.bubble?.resolve(null);
 		this.bubble = null;
+		this.helperState = null;
+		this.bannerText = null;
 		for (const w of this.wins.values()) if (!w.isDestroyed()) w.destroy();
 		this.wins.clear();
 	}

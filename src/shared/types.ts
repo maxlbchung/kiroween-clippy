@@ -36,6 +36,8 @@ export type AISettings = {
 	chatModel: string;
 	directModel: string;
 	baseUrl: string;
+	/** Do_Mode Tasks run risky actions and commands without asking first. */
+	autoMode: boolean;
 	/** Proactive tips from the Watcher. */
 	tips: boolean;
 	/** Minimum minutes between two tips, 1 to 30. */
@@ -127,9 +129,25 @@ export type OverlayBubble = {
 	anchor: Rect;
 };
 
+/** The input animations baby Clippy plays, named after the Actions. */
+export type HelperAct = "click" | "type_text" | "press_keys" | "scroll";
+
+export type OverlayHelper = {
+	/** Display-local box. */
+	rect: Rect;
+	/** Slide time from the previous box. */
+	moveMs: number;
+	act: HelperAct | null;
+	/** Changes on every act, so a repeated act replays. */
+	actId: number;
+};
+
 export type OverlayState = {
 	outline: OverlayOutline | null;
 	bubble: OverlayBubble | null;
+	helper: OverlayHelper | null;
+	/** Takeover_Banner text, shown on every display. */
+	banner: string | null;
 };
 
 export type OverlayEvent =

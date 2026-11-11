@@ -1,7 +1,9 @@
-// Agent overlay page: draws the current Outline and Clippy's task bubble,
-// and reports title-bar and bubble clicks to the main process.
+// Agent overlay page: draws the current Outline, Clippy's task bubble, baby
+// Clippy and the takeover banner, and reports title-bar and bubble clicks to
+// the main process.
 
 import type { OverlayState } from "../../shared/types.js";
+import { clippyMarkup } from "../common/clippy.js";
 import {
 	$,
 	api,
@@ -18,10 +20,22 @@ const title = $(".ol-title", outline);
 const bubble = $("#bubble");
 const bubbleText = $(".ob-text", bubble);
 const bubbleButtons = $(".ob-buttons", bubble);
+const helper = $("#helper");
+const banner = $("#banner");
 
-applyPrefs(await api.getSettings());
+const settings = await api.getSettings();
+applyPrefs(settings);
 api.onSettings(applyPrefs);
+helper.innerHTML = clippyMarkup({ uid: "baby", costume: settings.costume });
 const clickThrough = installClickThrough();
+let pointer = { x: -1, y: -1 };
+window.addEventListener(
+	"mousemove",
+	(e) => {
+		pointer = { x: e.clientX, y: e.clientY };
+	},
+	{ passive: true },
+);
 
 /** Outline frame thickness, so the inner edge sits on the target's bounds. */
 const FRAME = 4;
@@ -105,8 +119,13 @@ function renderBubble(b: OverlayState["bubble"]) {
 					`<button type="button" class="btn btn-sm${btn.primary ? " btn-primary" : ""}" data-bubble-btn="${esc(btn.id)}">${esc(btn.label)}</button>`,
 			)
 			.join("");
-		// Measure with the full text so placement does not jump while typing.
+		// Measures with the full text and holds that size, so the bubble and
+		// its buttons stay put while the text types out.
+		bubble.style.minWidth = "";
+		bubble.style.minHeight = "";
 		bubbleText.textContent = b.text;
+		bubble.style.minWidth = `${bubble.offsetWidth}px`;
+		bubble.style.minHeight = `${bubble.offsetHeight}px`;
 		placeBubble(b.anchor);
 		typeOut(b.text);
 		if (fresh) sfx.pop();
@@ -114,10 +133,38 @@ function renderBubble(b: OverlayState["bubble"]) {
 	bubble.classList.add("show");
 }
 
+let actId = 0;
+
+function renderHelper(h: OverlayState["helper"]) {
+	if (!h) {
+		helper.classList.remove("show");
+		return;
+	}
+	const shown = helper.classList.contains("show");
+	helper.style.transitionDuration =
+		shown && !reducedMotion() ? `${h.moveMs}ms` : "0ms";
+	helper.style.left = `${h.rect.x}px`;
+	helper.style.top = `${h.rect.y}px`;
+	helper.style.width = `${h.rect.width}px`;
+	helper.style.height = `${h.rect.height}px`;
+	helper.classList.add("show");
+	if (h.act && h.actId !== actId) {
+		actId = h.actId;
+		// Clearing and reflowing restarts the animation for a repeated act.
+		delete helper.dataset.act;
+		void helper.offsetWidth;
+		helper.dataset.act = h.act;
+	}
+}
+
 api.onOverlay((state: OverlayState) => {
 	renderOutline(state.outline);
 	renderBubble(state.bubble);
-	clickThrough.set(false);
+	renderHelper(state.helper);
+	$(".titlebar-text", banner).textContent = state.banner ?? "";
+	banner.classList.toggle("show", !!state.banner);
+	// What lies under the pointer may have changed, so a resting pointer keeps a button clickable.
+	clickThrough.refresh(pointer.x, pointer.y);
 });
 
 outline.addEventListener("click", (e) => {

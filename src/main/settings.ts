@@ -27,6 +27,7 @@ export const DEFAULTS: SettingsData = {
 		chatModel: "gpt-6.1-sol",
 		directModel: "gpt-6-luna",
 		baseUrl: "",
+		autoMode: false,
 		tips: true,
 		tipMinutes: 3,
 	},

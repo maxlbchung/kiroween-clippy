@@ -86,6 +86,7 @@ src/
       runner.js    one guide or do-it task as a model-driven loop (unit-tested)
       actions.js   tool definitions, parsing, validation and risk rules (unit-tested)
       openai.js    OpenAI Responses API provider
+      chat-completions.js  OpenAI-compatible endpoints over Chat Completions
       anthropic.js Anthropic Messages API provider
       watcher.js   tip triggers and rate limits (unit-tested)
       tools.js     PowerShell, web search and page downloads

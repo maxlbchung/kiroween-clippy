@@ -16,9 +16,7 @@ import {
 	type WindowInfo,
 } from "./agent/snapshot.js";
 
-/** Snapshot time budget inside the host, under the 1500 ms requirement. */
-const SNAPSHOT_BUDGET_MS = 1100;
-const REQUEST_TIMEOUT_MS = { snapshot: 2500, default: 4000 };
+const REQUEST_TIMEOUT_MS = { snapshot: 2500, screenshot: 5000, default: 4000 };
 /** Longest screenshot edge sent to models. */
 const SHOT_MAX_EDGE = 1568;
 
@@ -27,7 +25,8 @@ type HostEvent =
 	| { type: "error"; code?: string; message: string }
 	| { type: "foreground"; window: WindowInfo }
 	| { type: "input"; kind: "move" | "click" | "key"; x?: number; y?: number }
-	| { type: "undo" };
+	| { type: "undo" }
+	| { type: "cancel"; reason: "key" | "timeout" };
 
 type Pending = {
 	resolve: (v: unknown) => void;
@@ -56,7 +55,9 @@ function pointToDip(p: { x: number; y: number }) {
 
 /**
  * The long-lived PowerShell desktop host. Starts on first use, restarts
- * after it exits, and emits "foreground", "input" and "undo" events.
+ * after it exits, and emits "foreground", "input", "undo" and "cancel"
+ * events. "cancel" means the user pressed Esc or the Stop_Hotkey during a
+ * takeover, or the host ended the takeover after hearing nothing for 10 s.
  */
 export class DesktopHost extends EventEmitter {
 	script: string;
@@ -65,6 +66,7 @@ export class DesktopHost extends EventEmitter {
 	nextId = 1;
 	pending = new Map<number, Pending>();
 	watch = { input: false, undo: false };
+	heartbeat: ReturnType<typeof setInterval> | null = null;
 	disposed = false;
 
 	constructor(nativeDir: string) {
@@ -125,6 +127,14 @@ export class DesktopHost extends EventEmitter {
 			proc.on("error", (err) => {
 				clearTimeout(timer);
 				reject(err);
+			});
+			proc.on("exit", (code) => {
+				clearTimeout(timer);
+				reject(
+					new Error(
+						`The desktop host exited with code ${code}: ${stderr.trim().slice(-400)}`,
+					),
+				);
 			});
 		});
 		this.ready.catch((err) =>
@@ -197,8 +207,26 @@ export class DesktopHost extends EventEmitter {
 		]).catch(() => {});
 	}
 
+	/**
+	 * Starts or ends a takeover, during which the host discards the user's
+	 * mouse and keyboard input. Rejects when the host cannot hook the input.
+	 */
+	async takeover(on: boolean) {
+		if (this.heartbeat) clearInterval(this.heartbeat);
+		this.heartbeat = null;
+		if (!on && !this.proc) return;
+		await this.request(["takeover", on ? 1 : 0]);
+		// Pings keep the host's 10 s watchdog from ending the takeover.
+		if (on)
+			this.heartbeat = setInterval(
+				() => this.proc?.stdin?.write("ping\n"),
+				1000,
+			);
+	}
+
 	dispose() {
 		this.disposed = true;
+		if (this.heartbeat) clearInterval(this.heartbeat);
 		const p = this.proc;
 		if (!p) return;
 		try {
@@ -264,7 +292,7 @@ export class DesktopScreen implements Screen {
 		if (!this.host.supported) return null;
 		try {
 			const raw = await this.host.request<UiSnapshot>(
-				["snapshot", MAX_ELEMENTS, SNAPSHOT_BUDGET_MS],
+				["snapshot", MAX_ELEMENTS],
 				REQUEST_TIMEOUT_MS.snapshot,
 			);
 			const capped = capElements(
@@ -303,32 +331,47 @@ export class DesktopScreen implements Screen {
 		// Content protection keeps Clippy's own windows out of the capture.
 		for (const w of wins) w.setContentProtection(true);
 		try {
-			const size = {
-				width: Math.round(display.size.width * display.scaleFactor),
-				height: Math.round(display.size.height * display.scaleFactor),
-			};
+			if (this.host.supported) {
+				// The host captures in its own process; Electron's capturer blocks
+				// this thread for seconds on first use.
+				const r = screen.dipToScreenRect(null, display.bounds);
+				const shot = await this.host.request<{
+					width: number;
+					height: number;
+					data: string;
+				}>(
+					["screenshot", r.x, r.y, r.width, r.height, SHOT_MAX_EDGE],
+					REQUEST_TIMEOUT_MS.screenshot,
+				);
+				return {
+					image: { type: "image", mime: "image/jpeg", data: shot.data },
+					width: shot.width,
+					height: shot.height,
+					display: display.bounds,
+				};
+			}
+			const k = Math.min(
+				1,
+				SHOT_MAX_EDGE /
+					(Math.max(display.size.width, display.size.height) *
+						display.scaleFactor),
+			);
 			const sources = await desktopCapturer.getSources({
 				types: ["screen"],
-				thumbnailSize: size,
+				thumbnailSize: {
+					width: Math.round(display.size.width * display.scaleFactor * k),
+					height: Math.round(display.size.height * display.scaleFactor * k),
+				},
 			});
 			const source =
 				sources.find((s) => s.display_id === String(display.id)) ?? sources[0];
 			if (!source || source.thumbnail.isEmpty()) return null;
-			let img = source.thumbnail;
-			const { width, height } = img.getSize();
-			const k = Math.min(1, SHOT_MAX_EDGE / Math.max(width, height));
-			if (k < 1)
-				img = img.resize({
-					width: Math.round(width * k),
-					height: Math.round(height * k),
-					quality: "good",
-				});
-			const out = img.getSize();
+			const out = source.thumbnail.getSize();
 			return {
 				image: {
 					type: "image",
 					mime: "image/jpeg",
-					data: img.toJPEG(82).toString("base64"),
+					data: source.thumbnail.toJPEG(82).toString("base64"),
 				},
 				width: out.width,
 				height: out.height,
@@ -374,6 +417,10 @@ export class DesktopScreen implements Screen {
 
 	watchInput(on: boolean) {
 		this.host.setWatch({ input: on });
+	}
+
+	takeover(on: boolean) {
+		return this.host.takeover(on);
 	}
 
 	onUserInput(cb: (e: UserInput) => void) {

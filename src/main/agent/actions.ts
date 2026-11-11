@@ -128,7 +128,7 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 				risky: bool(RISKY_DOC),
 				explanation: str(EXPLAIN_DOC, LIMITS.explanation),
 			},
-			["target", "explanation"],
+			["target"],
 		),
 	},
 	type_text: {
@@ -142,7 +142,7 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 				risky: bool(RISKY_DOC),
 				explanation: str(EXPLAIN_DOC, LIMITS.explanation),
 			},
-			["text", "explanation"],
+			["text"],
 		),
 	},
 	press_keys: {
@@ -155,7 +155,7 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 				risky: bool(RISKY_DOC),
 				explanation: str(EXPLAIN_DOC, LIMITS.explanation),
 			},
-			["keys", "explanation"],
+			["keys"],
 		),
 	},
 	scroll: {
@@ -173,7 +173,7 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 				},
 				explanation: str(EXPLAIN_DOC, LIMITS.explanation),
 			},
-			["target", "direction", "explanation"],
+			["target", "direction"],
 		),
 	},
 	guide_step: {
@@ -210,7 +210,7 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 				},
 				explanation: str(EXPLAIN_DOC, LIMITS.explanation),
 			},
-			["command", "explanation"],
+			["command"],
 		),
 	},
 	web_search: {
@@ -244,7 +244,8 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 	},
 	say: {
 		name: "say",
-		description: "Show the user a short message without acting.",
+		description:
+			"Show the user a short message without acting. The next step's message replaces it.",
 		parameters: obj({ text: str("The message.", LIMITS.message) }),
 	},
 	finish: {
@@ -261,9 +262,12 @@ export const TOOLS: Record<ActionType, ToolSpec> = {
 	start_task: {
 		name: "start_task",
 		description:
-			'Start a task on the user\'s screen. Use mode "guide" to show the user how, "do" to do it for them.',
+			'Start a helper on the user\'s PC. Mode "do" does the goal for them with the mouse and keyboard; "guide" shows them how, step by step.',
 		parameters: obj({
-			goal: str("What to accomplish, in one sentence.", LIMITS.goal),
+			goal: str(
+				"The complete instruction for the helper, with exact names and the exact text to type or send.",
+				LIMITS.goal,
+			),
 			mode: { type: "string", enum: ["guide", "do"] },
 		}),
 	},
@@ -387,6 +391,14 @@ function text(
 	return v;
 }
 
+/** The step's explanation, or `fallback` when the model sent none. Some gateways drop the field. */
+function explain(input: Record<string, unknown>, fallback: string): string {
+	return (
+		text(input, "explanation", LIMITS.explanation, { optional: true }) ??
+		fallback
+	);
+}
+
 function flag(input: Record<string, unknown>, key: string): boolean {
 	const v = input[key];
 	if (v === undefined || v === null) return false;
@@ -473,42 +485,52 @@ export function parseAction(name: unknown, input: unknown): ParseResult {
 					button: oneOf(i, "button", ["left", "right"] as const, "left"),
 					double: flag(i, "double"),
 					risky: flag(i, "risky"),
-					explanation: text(i, "explanation", LIMITS.explanation),
+					explanation: explain(i, "Clicking here"),
 				});
-			case "type_text":
+			case "type_text": {
+				const typed = text(i, "text", LIMITS.typeText);
 				return ok({
 					type,
 					target: target(i, "target", true),
-					text: text(i, "text", LIMITS.typeText),
+					text: typed,
 					risky: flag(i, "risky"),
-					explanation: text(i, "explanation", LIMITS.explanation),
+					explanation: explain(
+						i,
+						`Typing "${typed.length > 40 ? `${typed.slice(0, 39)}…` : typed}"`,
+					),
 				});
+			}
 			case "press_keys": {
 				const keys = text(i, "keys", LIMITS.keys);
-				need(parseKeys(keys), `"keys" is not a key combination I know`);
+				need(
+					parseKeys(keys),
+					`"keys" is not a key combination I know; type symbols with type_text`,
+				);
 				return ok({
 					type,
 					keys,
 					risky: flag(i, "risky"),
-					explanation: text(i, "explanation", LIMITS.explanation),
+					explanation: explain(i, `Pressing ${keys}`),
 				});
 			}
-			case "scroll":
+			case "scroll": {
+				const direction = oneOf(i, "direction", [
+					"up",
+					"down",
+					"left",
+					"right",
+				] as const);
 				return ok({
 					type,
 					target: target(i, "target"),
-					direction: oneOf(i, "direction", [
-						"up",
-						"down",
-						"left",
-						"right",
-					] as const),
+					direction,
 					amount: num(i, "amount", 1, LIMITS.scrollAmount, {
 						fallback: 3,
 						integer: true,
 					}),
-					explanation: text(i, "explanation", LIMITS.explanation),
+					explanation: explain(i, `Scrolling ${direction}`),
 				});
+			}
 			case "guide_step":
 				return ok({
 					type,
@@ -528,7 +550,7 @@ export function parseAction(name: unknown, input: unknown): ParseResult {
 						fallback: 60,
 						integer: true,
 					}),
-					explanation: text(i, "explanation", LIMITS.explanation),
+					explanation: explain(i, "Running a command"),
 				});
 			case "web_search":
 				return ok({

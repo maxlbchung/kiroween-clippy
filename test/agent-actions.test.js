@@ -203,7 +203,6 @@ test("parseAction rejects malformed input with a reason", () => {
 	const bad = [
 		["nope", {}],
 		["click", {}],
-		["click", { target: "e1" }],
 		["click", { target: "button", explanation: "x" }],
 		["click", { target: "e1", explanation: "x", button: "middle" }],
 		["click", { target: "e1", explanation: "x", risky: "yes" }],
@@ -228,6 +227,15 @@ test("parseAction rejects malformed input with a reason", () => {
 			explanation: "x",
 		}).ok,
 	);
+	// Some gateways drop the explanation, so each Action falls back to its own.
+	for (const [name, input, said] of [
+		["click", { target: "e1" }, "Clicking here"],
+		["press_keys", { keys: "win+r" }, "Pressing win+r"],
+		["scroll", { target: "e1", direction: "down" }, "Scrolling down"],
+		["run_command", { command: "calc" }, "Running a command"],
+		["type_text", { text: "hi" }, 'Typing "hi"'],
+	])
+		assert.equal(parseAction(name, input).action.explanation, said, name);
 	assert.equal(
 		fromOpenAIFunctionCall({
 			type: "function_call",

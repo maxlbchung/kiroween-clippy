@@ -29,3 +29,26 @@ test("htmlToText drops scripts and keeps blocks apart", () => {
 		"one\ntwo & three",
 	);
 });
+
+test("native scripts are ASCII, which Windows PowerShell reads without a BOM", async () => {
+	const { readdir, readFile } = await import("node:fs/promises");
+	const dir = new URL("../native/", import.meta.url);
+	for (const name of await readdir(dir))
+		assert.doesNotMatch(
+			await readFile(new URL(name, dir), "latin1"),
+			/[^\t\n\r -~]/,
+			name,
+		);
+});
+
+test("chat only talks, looks things up and delegates screen work", async () => {
+	const { TASK_TOOLS } = await import("../src/main/agent/actions.ts");
+	const { CHAT_SYSTEM } = await import("../src/main/agent/prompts.ts");
+	assert.deepEqual(TASK_TOOLS.chat.sort(), [
+		"fetch_url",
+		"screenshot",
+		"start_task",
+		"web_search",
+	]);
+	assert.match(CHAT_SYSTEM, /only chat and delegate/);
+});

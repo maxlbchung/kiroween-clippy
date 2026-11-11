@@ -2,7 +2,7 @@
 // ask the model for one Action, validate it, show it, perform it, repeat.
 // Screen access, input and UI are injected so the loop can be tested.
 
-import type { Rect } from "../../shared/types.js";
+import type { HelperAct, Point, Rect } from "../../shared/types.js";
 import {
 	type Action,
 	type ActionOf,
@@ -23,6 +23,7 @@ import {
 	type ModelClient,
 	ModelError,
 	type ModelReply,
+	type Part,
 	type ToolResult,
 	withoutImages,
 } from "./model.js";
@@ -73,6 +74,8 @@ export interface Screen {
 	elementRect(id: string): Promise<Rect | null>;
 	watchInput(on: boolean): void;
 	onUserInput(cb: (e: UserInput) => void): () => void;
+	/** Starts or ends discarding the user's own mouse and keyboard input. Starting rejects when that is impossible. */
+	takeover(on: boolean): Promise<void>;
 }
 
 export type OutlineSpec = {
@@ -92,6 +95,10 @@ export interface Stage {
 	hideBubble(): void;
 	walkTo(rect: Rect): Promise<void>;
 	goHome(): Promise<void>;
+	/** Moves baby Clippy beside `at`, or keeps him where he is, and plays `act`; null removes him. Resolves when he arrives. */
+	helper(spec: { at?: Point; act?: HelperAct } | null): Promise<void>;
+	/** Shows the takeover banner, or hides it with null. */
+	banner(text: string | null): void;
 	mood(m: string | null): void;
 	onOutlineButton(cb: (button: "skip" | "close") => void): () => void;
 }
@@ -123,8 +130,9 @@ export const TIMING = {
 	outlineLeadMs: 400,
 	/** Pause after input so the UI can react before the next snapshot. */
 	settleMs: 350,
+	/** Pause after a command so windows it opens appear in the next snapshot. */
+	commandSettleMs: 1000,
 	confirmMs: 30_000,
-	pauseMs: 60_000,
 	guideStepMs: 5 * 60_000,
 	/** Delay after a click in the target before checking a guide step. */
 	clickCheckMs: 300,
@@ -132,16 +140,70 @@ export const TIMING = {
 	keyIdleMs: 1200,
 	/** How often a guide step re-reads the screen for changes. */
 	pollMs: 2500,
-	/** Input ignored after the user answers a prompt. */
-	resumeGraceMs: 1000,
 	/** How often an outlined element's bounds are re-read. */
 	trackMs: 200,
 };
 
 export const STEP_LIMITS = { do: 30, guide: 20 };
+/** Model turns allowed per Task, so lookups, waits and messages cannot loop forever. */
+export const TURN_LIMITS = { do: 90, guide: 60 };
 /** Invalid or failed model turns tolerated per Step. */
 export const MAX_ATTEMPTS = 3;
 const NUDGE_ON_TEXT = "Call exactly one of the tools to continue.";
+const TAKEOVER_BANNER =
+	"Baby Clippy has your mouse and keyboard. Press Esc to stop.";
+const SCREEN_MARK = "\nCurrent screen:\n";
+const shotNote = (shot: Shot) =>
+	`\nScreenshot attached, ${shot.width}x${shot.height} pixels. Boxes refer to these pixels.`;
+
+/**
+ * Copy of `history` with only the newest UI list and the newest image.
+ * Older UI lists are cut at their "Current screen:" line, since their
+ * element ids no longer apply, and older images are dropped.
+ */
+export function latestScreenOnly(history: HistoryItem[]): HistoryItem[] {
+	let listKept = false;
+	let imageKept = false;
+	const cut = (text: string) => {
+		const i = text.indexOf(SCREEN_MARK);
+		if (i < 0) return text;
+		if (!listKept) {
+			listKept = true;
+			return text;
+		}
+		return `${text.slice(0, i)}\n(Earlier screen omitted.)`;
+	};
+	const keepImage = () => {
+		if (imageKept) return false;
+		imageKept = true;
+		return true;
+	};
+	const out = [...history];
+	for (let k = out.length - 1; k >= 0; k--) {
+		const h = out[k];
+		if (h.role === "user")
+			out[k] = {
+				...h,
+				parts: h.parts.flatMap((p): Part[] =>
+					p.type === "text"
+						? [{ ...p, text: cut(p.text) }]
+						: keepImage()
+							? [p]
+							: [],
+				),
+			};
+		else if (h.role === "tool")
+			out[k] = {
+				...h,
+				results: h.results.map((r) => ({
+					...r,
+					text: cut(r.text),
+					image: r.image && keepImage() ? r.image : undefined,
+				})),
+			};
+	}
+	return out;
+}
 
 export type TaskSpec = {
 	goal: string;
@@ -149,6 +211,8 @@ export type TaskSpec = {
 	client: ModelClient;
 	model: string;
 	effort?: "low" | "medium" | "high";
+	/** Runs risky actions and commands without a Confirmation_Prompt. */
+	auto?: boolean;
 };
 
 export type TaskOutcome = {
@@ -201,9 +265,7 @@ export class TaskRunner {
 	shot: Shot | null = null;
 	vision = true;
 	steps = 0;
-	busyWithUser = false;
-	graceUntil = 0;
-	pause: Promise<"resume" | "stop"> | null = null;
+	turns = 0;
 	trackTimer: ReturnType<typeof setInterval> | null = null;
 	/** Aborted when a run ends, releasing prompts still on screen. */
 	done = new AbortController();
@@ -241,8 +303,7 @@ export class TaskRunner {
 		this.shot = null;
 		this.vision = true;
 		this.steps = 0;
-		this.pause = null;
-		this.busyWithUser = false;
+		this.turns = 0;
 		this.done = new AbortController();
 		if (spec.mode === "do" && !this.screen.canAct)
 			return {
@@ -257,21 +318,25 @@ export class TaskRunner {
 		void this.stage.say(
 			spec.mode === "guide"
 				? "Let me show you how. Follow the frames!"
-				: "On it! Move the mouse or press Ctrl+Alt+Backspace to stop me.",
+				: "On it! Baby Clippy is taking the wheel. Press Esc to stop him.",
 		);
 		try {
-			await this.perceive();
+			if (spec.mode === "do") {
+				void this.stage.helper({});
+				await this.takeover(true);
+			}
+			const shot = await this.perceive();
 			const parts: HistoryItem & { role: "user" } = {
 				role: "user",
 				parts: [
 					{
 						type: "text",
-						text: taskPrompt(spec.goal, formatSnapshot(this.snap)),
+						text:
+							taskPrompt(spec.goal, formatSnapshot(this.snap)) +
+							(shot ? shotNote(shot) : ""),
 					},
 				],
 			};
-			// perceive() sets the screenshot, which control-flow narrowing cannot see.
-			const shot = this.shot as Shot | null;
 			if (shot) parts.parts.push(shot.image);
 			this.history.push(parts);
 			return await this.loop();
@@ -294,18 +359,28 @@ export class TaskRunner {
 		} finally {
 			this.done.abort();
 			this.stopTracking();
+			if (spec.mode === "do") {
+				await this.takeover(false);
+				void this.stage.helper(null);
+			}
 			offInput();
 			this.screen.watchInput(false);
 			this.stage.outline(null);
+			this.stage.hideBubble();
 			this.stage.mood(null);
 			await this.stage.goHome().catch(() => {});
 		}
 	}
 
-	/** Reads the UI list, falling back to a screenshot when it is empty. */
-	async perceive() {
+	/**
+	 * Reads the UI list. When it is empty, takes a screenshot instead and
+	 * returns it so the model gets something to look at; otherwise null.
+	 */
+	async perceive(): Promise<Shot | null> {
 		this.snap = await this.screen.snapshot();
-		if (!this.snap?.elements.length) this.shot = await this.screen.screenshot();
+		if (this.snap?.elements.length) return null;
+		this.shot = await this.screen.screenshot();
+		return this.shot;
 	}
 
 	checkAborted() {
@@ -316,6 +391,12 @@ export class TaskRunner {
 		let attempts = 0;
 		for (;;) {
 			this.checkAborted();
+			if (++this.turns > TURN_LIMITS[this.spec.mode])
+				throw end(
+					false,
+					"I was going in circles, so I stopped here.",
+					"limit",
+				);
 			const reply = await this.ask();
 			this.history.push({
 				role: "assistant",
@@ -366,6 +447,9 @@ export class TaskRunner {
 			else result = await this.execute(parsed.action);
 
 			if (result.isError) {
+				console.error(
+					`[agent] ${call.name} failed: ${result.text.slice(0, 300)} input=${JSON.stringify(call.input)?.slice(0, 300)}`,
+				);
 				if (++attempts > MAX_ATTEMPTS)
 					throw end(
 						false,
@@ -388,7 +472,9 @@ export class TaskRunner {
 			return await client.complete({
 				model,
 				system: this.spec.mode === "guide" ? GUIDE_SYSTEM : DO_SYSTEM,
-				history: this.vision ? this.history : withoutImages(this.history),
+				history: latestScreenOnly(
+					this.vision ? this.history : withoutImages(this.history),
+				),
 				tools: this.tools.map((t) => TOOLS[t]),
 				requireTool: true,
 				effort: effort ?? "medium",
@@ -426,11 +512,22 @@ export class TaskRunner {
 		});
 	}
 
-	screenText(prefix: string, before?: string): string {
-		const now = fingerprint(this.snap);
-		if (before !== undefined && before === now)
-			return `${prefix}\nThe screen looks unchanged.`;
-		return `${prefix}\nCurrent screen:\n${formatSnapshot(this.snap)}`;
+	/**
+	 * A tool result describing the screen after a step. `shot` is the
+	 * screenshot `perceive` fell back to, which goes along with the list.
+	 * Without one, an unchanged `before` fingerprint shortens the result.
+	 */
+	screenResult(
+		prefix: string,
+		shot: Shot | null,
+		before?: string,
+	): Omit<ToolResult, "callId" | "name"> {
+		if (!shot && before !== undefined && before === fingerprint(this.snap))
+			return { text: `${prefix}\nThe screen looks unchanged.` };
+		return {
+			text: `${prefix}\nCurrent screen:\n${formatSnapshot(this.snap)}${shot ? shotNote(shot) : ""}`,
+			image: this.vision ? shot?.image : undefined,
+		};
 	}
 
 	async execute(action: Action): Promise<Omit<ToolResult, "callId" | "name">> {
@@ -447,8 +544,7 @@ export class TaskRunner {
 			case "wait": {
 				const before = fingerprint(this.snap);
 				await this.clock.sleep(action.seconds * 1000, this.signal);
-				await this.perceive();
-				return { text: this.screenText("Waited.", before) };
+				return this.screenResult("Waited.", await this.perceive(), before);
 			}
 			case "say":
 				void this.stage.say(action.text);
@@ -502,28 +598,26 @@ export class TaskRunner {
 				},
 				t && "element" in t ? t.element : null,
 			);
-			await this.stage.walkTo(target.rect);
+			await this.stage.helper({
+				at: {
+					x: target.rect.x + target.rect.width / 2,
+					y: target.rect.y + target.rect.height / 2,
+				},
+			});
 		}
 		void this.stage.say(action.explanation);
 		const lead = this.timing.outlineLeadMs - (this.clock.now() - shownAt);
 		if (lead > 0) await this.clock.sleep(lead, this.signal);
 
 		if (isRisky(action, target?.name)) await this.confirm(action.explanation);
-		if ((await this.gate()) === "resumed")
-			return {
-				text: this.screenText(
-					"The user interrupted before this action ran, so it was not performed. Decide the next step from the current screen.",
-				),
-				isError: false,
-			};
 
 		const before = fingerprint(this.snap);
+		void this.stage.helper({ act: action.type });
 		await this.perform(action, target);
 		await this.clock.sleep(this.timing.settleMs, this.signal);
 		this.stopTracking();
 		this.stage.outline(null);
-		await this.perceive();
-		return { text: this.screenText("Done.", before) };
+		return this.screenResult("Done.", await this.perceive(), before);
 	}
 
 	/** Runs PowerShell after the user confirms it; counts as a Do_Mode Step. */
@@ -541,12 +635,6 @@ export class TaskRunner {
 				? `${action.command.slice(0, 119)}…`
 				: action.command;
 		await this.confirm(`${action.explanation} (runs "${shown}")`);
-		if ((await this.gate()) === "resumed")
-			return {
-				text: this.screenText(
-					"The user interrupted before this command ran, so it was not run. Decide the next step from the current screen.",
-				),
-			};
 		void this.stage.say(action.explanation);
 		const before = fingerprint(this.snap);
 		const output = await this.local.runCommand(
@@ -554,8 +642,8 @@ export class TaskRunner {
 			action.timeout_seconds,
 			this.signal,
 		);
-		await this.perceive();
-		return { text: this.screenText(output, before) };
+		await this.clock.sleep(this.timing.commandSettleMs, this.signal);
+		return this.screenResult(output, await this.perceive(), before);
 	}
 
 	async perform(
@@ -610,10 +698,33 @@ export class TaskRunner {
 		}
 	}
 
-	/** Shows a Confirmation_Prompt. Ends the Task on No or after 30 s. */
+	/**
+	 * Starts or ends the takeover and its banner. A failed start ends the
+	 * Task; a failed end is ignored, since the host also ends it on its own.
+	 */
+	async takeover(on: boolean) {
+		this.stage.banner(on ? TAKEOVER_BANNER : null);
+		if (!on) return this.screen.takeover(false).catch(() => {});
+		await this.screen.takeover(true).catch(() => {
+			this.stage.banner(null);
+			throw end(
+				false,
+				"I couldn't take control of your mouse and keyboard, so I stopped.",
+				"error",
+			);
+		});
+	}
+
+	/**
+	 * Shows a Confirmation_Prompt with the takeover lifted so the user can
+	 * answer. Ends the Task on No or after 30 s; resumes the takeover on Yes.
+	 * Returns at once in auto mode.
+	 */
 	async confirm(explanation: string) {
+		if (this.spec.auto) return;
+		await this.takeover(false);
 		const answer = await this.askUser(
-			`This one needs your OK: ${explanation}. Go ahead?`,
+			`This one needs your OK: ${explanation.replace(/[.!?\s]+$/, "")}. Go ahead?`,
 			[
 				{ id: "yes", label: "Yes", primary: true },
 				{ id: "no", label: "No" },
@@ -628,15 +739,15 @@ export class TaskRunner {
 					: "Okay, I won't do that. Stopped.",
 				"declined",
 			);
+		await this.takeover(true);
 	}
 
-	/** Shows a question with buttons; null on timeout. Input is not watched meanwhile. */
+	/** Shows a question with buttons; null on timeout. */
 	async askUser(
 		text: string,
 		buttons: BubbleButton[],
 		timeoutMs: number,
 	): Promise<string | null> {
-		this.busyWithUser = true;
 		const ctrl = new AbortController();
 		const onAbort = () => ctrl.abort();
 		const done = this.done.signal;
@@ -659,42 +770,11 @@ export class TaskRunner {
 			ctrl.abort();
 			this.signal.removeEventListener("abort", onAbort);
 			done.removeEventListener("abort", onAbort);
-			this.busyWithUser = false;
-			this.graceUntil = this.clock.now() + this.timing.resumeGraceMs;
 		}
 	}
 
 	userInput(e: UserInput) {
 		for (const fn of this.inputListeners) fn(e);
-		if (
-			this.spec.mode !== "do" ||
-			this.busyWithUser ||
-			this.pause ||
-			this.clock.now() < this.graceUntil
-		)
-			return;
-		this.pause = this.askUser(
-			"You moved — I paused. Want me to keep going?",
-			[
-				{ id: "continue", label: "Continue", primary: true },
-				{ id: "stop", label: "Stop" },
-			],
-			this.timing.pauseMs,
-		).then(
-			(a) => (a === "continue" ? "resume" : "stop"),
-			() => "stop" as const,
-		);
-	}
-
-	/** Waits out a pause. "resumed" when the user chose Continue. */
-	async gate(): Promise<"clear" | "resumed"> {
-		if (!this.pause) return "clear";
-		const decision = await this.pause;
-		this.pause = null;
-		this.checkAborted();
-		if (decision === "stop") throw end(false, "Okay, I stopped.", "cancelled");
-		await this.perceive();
-		return "resumed";
 	}
 
 	// Guide_Mode
@@ -736,15 +816,12 @@ export class TaskRunner {
 				"I stopped the guide since that step sat for 5 minutes. Ask me again any time.",
 				"timeout",
 			);
-		if (status === "skipped") {
-			await this.perceive();
-			return {
-				text: this.screenText(
-					"The user pressed Skip: treat this step as done (or done another way).",
-				),
-			};
-		}
-		return { text: this.screenText("The user acted on this step.") };
+		if (status === "skipped")
+			return this.screenResult(
+				"The user pressed Skip: treat this step as done (or done another way).",
+				await this.perceive(),
+			);
+		return this.screenResult("The user acted on this step.", null);
 	}
 
 	/**

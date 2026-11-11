@@ -162,6 +162,7 @@ test("OpenAI client sends a Responses API request and reads the reply", async ()
 		history: [{ role: "user", parts: [{ type: "text", text: "hi" }] }],
 		tools: [TOOLS.finish, TOOLS.say],
 		requireTool: true,
+		effort: "low",
 	});
 	assert.equal(seen.url, "https://gw.example/v1/responses");
 	assert.equal(seen.init.headers.Authorization, "Bearer sk-test");
@@ -170,6 +171,7 @@ test("OpenAI client sends a Responses API request and reads the reply", async ()
 	assert.equal(seen.body.tool_choice, "required");
 	assert.equal(seen.body.parallel_tool_calls, false);
 	assert.equal(seen.body.store, false);
+	assert.equal(seen.body.reasoning, undefined);
 	assert.deepEqual(
 		seen.body.tools.map((t) => [t.type, t.name]),
 		[
@@ -359,4 +361,136 @@ test("withoutImages strips every image and keeps the rest", () => {
 	assert.equal(hasImages(stripped), false);
 	assert.equal(stripped[1], history[1]);
 	assert.match(stripped[2].results[0].text, /^Done\./);
+});
+
+test("Chat Completions messages carry calls, tool results and screenshots", async () => {
+	const { toChatMessages } = await import(
+		"../src/main/agent/chat-completions.ts"
+	);
+	const msgs = toChatMessages("SYS", history);
+	assert.deepEqual(msgs[0], { role: "system", content: "SYS" });
+	assert.deepEqual(msgs[1].content[1], {
+		type: "image_url",
+		image_url: { url: "data:image/jpeg;base64,QUJD" },
+	});
+	assert.deepEqual(msgs[2].tool_calls, [
+		{
+			id: "c1",
+			type: "function",
+			function: {
+				name: "click",
+				arguments: '{"target":"e1","explanation":"x"}',
+			},
+		},
+	]);
+	assert.deepEqual(msgs[3], {
+		role: "tool",
+		tool_call_id: "c1",
+		content: "Done.",
+	});
+	assert.equal(msgs[4].role, "user");
+	assert.equal(msgs[4].content[1].type, "image_url");
+	assert.equal(
+		toChatMessages("S", [
+			{ role: "user", parts: [{ type: "text", text: "hi" }] },
+		])[1].content,
+		"hi",
+	);
+});
+
+test("Chat Completions client sends tools and reads tool calls", async () => {
+	const { createChatCompletionsClient } = await import(
+		"../src/main/agent/chat-completions.ts"
+	);
+	let seen;
+	const client = createChatCompletionsClient({
+		apiKey: "k",
+		baseUrl: "https://gw.example/v1/",
+		fetchImpl: async (url, init) => {
+			seen = { url, body: JSON.parse(init.body) };
+			return new Response(
+				JSON.stringify({
+					choices: [
+						{
+							message: {
+								content: null,
+								tool_calls: [
+									{
+										id: "t1",
+										type: "function",
+										function: {
+											name: "start_task",
+											arguments: '{"goal":"g","mode":"do"}',
+										},
+									},
+								],
+							},
+							finish_reason: "tool_calls",
+						},
+					],
+				}),
+				{ status: 200 },
+			);
+		},
+	});
+	const reply = await client.complete({
+		model: "m",
+		system: "s",
+		history: [{ role: "user", parts: [{ type: "text", text: "hi" }] }],
+		tools: [TOOLS.start_task],
+		requireTool: true,
+	});
+	assert.equal(seen.url, "https://gw.example/v1/chat/completions");
+	assert.deepEqual(seen.body.tools[0].function.name, "start_task");
+	assert.equal(seen.body.tools[0].type, "function");
+	assert.equal(seen.body.tool_choice, "required");
+	assert.equal(reply.stop, "tool");
+	assert.deepEqual(reply.calls, [
+		{ id: "t1", name: "start_task", input: { goal: "g", mode: "do" } },
+	]);
+});
+
+test("Chat Completions streams text and assembles split tool calls", async () => {
+	const { createChatCompletionsClient } = await import(
+		"../src/main/agent/chat-completions.ts"
+	);
+	const chunk = (delta, finish_reason = null) => ({
+		data: JSON.stringify({ choices: [{ delta, finish_reason }] }),
+	});
+	const body = formatSse([
+		chunk({ content: "On " }),
+		chunk({ content: "it." }),
+		chunk({
+			tool_calls: [
+				{
+					index: 0,
+					id: "t9",
+					function: { name: "start_task", arguments: '{"goal":' },
+				},
+			],
+		}),
+		chunk({
+			tool_calls: [{ index: 0, function: { arguments: '"g","mode":"do"}' } }],
+		}),
+		chunk({}, "tool_calls"),
+		{ data: "[DONE]" },
+	]);
+	const client = createChatCompletionsClient({
+		apiKey: "k",
+		fetchImpl: async () => new Response(body, { status: 200 }),
+	});
+	const deltas = [];
+	const reply = await client.complete({
+		model: "m",
+		system: "s",
+		history: [{ role: "user", parts: [{ type: "text", text: "hi" }] }],
+		tools: [TOOLS.start_task],
+		onText: (d) => deltas.push(d),
+	});
+	assert.deepEqual(deltas, ["On ", "it."]);
+	assert.equal(reply.text, "On it.");
+	assert.deepEqual(reply.calls, [
+		{ id: "t9", name: "start_task", input: { goal: "g", mode: "do" } },
+	]);
+	assert.equal(reply.stop, "tool");
 });

@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { ModelError } from "../src/main/agent/model.ts";
-import { STEP_LIMITS, TaskRunner } from "../src/main/agent/runner.ts";
+import {
+	latestScreenOnly,
+	STEP_LIMITS,
+	TaskRunner,
+	TURN_LIMITS,
+} from "../src/main/agent/runner.ts";
 
 const DISPLAY = { x: 0, y: 0, width: 1920, height: 1080 };
 const SAVE = { x: 100, y: 100, width: 80, height: 30 };
@@ -31,11 +36,20 @@ const snapWith = (els) => ({
 	truncated: false,
 });
 
-function fakeScreen({ canAct = true, elements = [["Save", SAVE]] } = {}) {
+function fakeScreen({
+	canAct = true,
+	elements = [["Save", SAVE]],
+	takeoverFails = false,
+} = {}) {
 	return {
 		canAct,
 		performed: [],
 		watching: [],
+		takeovers: [],
+		async takeover(on) {
+			this.takeovers.push(on);
+			if (on && takeoverFails) throw new Error("no hooks");
+		},
 		cbs: new Set(),
 		current: snapWith(elements),
 		async snapshot() {
@@ -74,7 +88,15 @@ function fakeStage({ answer = () => null, onWalk = () => {} } = {}) {
 		bubbles: [],
 		walks: 0,
 		homes: 0,
+		helpers: [],
+		banners: [],
 		moods: [],
+		async helper(spec) {
+			this.helpers.push(spec);
+		},
+		banner(text) {
+			this.banners.push(text);
+		},
 		outlineCbs: new Set(),
 		outline(spec) {
 			this.outlines.push(spec && { ...spec, at: Date.now() });
@@ -89,7 +111,10 @@ function fakeStage({ answer = () => null, onWalk = () => {} } = {}) {
 				),
 			);
 		},
-		hideBubble() {},
+		hides: 0,
+		hideBubble() {
+			this.hides++;
+		},
 		async walkTo() {
 			this.walks++;
 			onWalk(this.walks);
@@ -141,13 +166,12 @@ function fakeModel(script) {
 const FAST = {
 	outlineLeadMs: 40,
 	settleMs: 1,
+	commandSettleMs: 1,
 	confirmMs: 60,
-	pauseMs: 60,
 	guideStepMs: 300,
 	clickCheckMs: 1,
 	keyIdleMs: 5,
 	pollMs: 25,
-	resumeGraceMs: 0,
 	trackMs: 10_000,
 };
 
@@ -189,9 +213,20 @@ test("Do_Mode outlines, waits, clicks the target's center and finishes", async (
 		p.at - shown.at >= FAST.outlineLeadMs - 2,
 		"outline shows before the click",
 	);
-	assert.equal(stage.walks, 1);
+	assert.equal(stage.walks, 0, "the Pet stays home");
+	assert.deepEqual(stage.helpers, [
+		{},
+		{ at: { x: 140, y: 115 } },
+		{ act: "click" },
+		null,
+	]);
+	assert.deepEqual(screen.takeovers, [true, false]);
+	assert.match(stage.banners[0], /Esc/);
+	assert.equal(stage.banners.at(-1), null);
+	assert.match(stage.bubbles[0].text, /Esc/);
 	assert.equal(stage.homes, 1);
 	assert.equal(stage.outlines.at(-1), null, "outline removed at the end");
+	assert.ok(stage.hides >= 1, "the last step bubble is hidden");
 	assert.deepEqual(screen.watching, [true, false]);
 	assert.ok(stage.moods.includes("thinking"));
 	// The model saw the screen and only Do_Mode tools.
@@ -302,51 +337,54 @@ test("Do_Mode stops at its step limit", async () => {
 	assert.equal(screen.performed.length, STEP_LIMITS.do);
 });
 
-test("user input pauses; Continue re-plans without performing the stale action", async () => {
+test("a confirmation hands input back while it waits, then takes it again", async () => {
 	const screen = fakeScreen();
-	const prompts = [];
+	let held = null;
 	const stage = fakeStage({
-		answer: (_text, ids) => {
-			prompts.push(ids);
-			return "continue";
+		answer: () => {
+			held = screen.takeovers.at(-1);
+			return "yes";
 		},
-		onWalk: (n) => n === 1 && screen.emit({ kind: "move", x: 5, y: 5 }),
 	});
-	const { result, model } = run({
-		script: [click(), click(), finish()],
+	const { result } = run({
+		script: [click("e1", { risky: true }), finish()],
 		screen,
 		stage,
 	});
+	assert.equal((await result).success, true);
+	assert.equal(held, false, "the user can answer");
+	assert.deepEqual(screen.takeovers, [true, false, true, false]);
+	assert.equal(screen.performed.length, 1);
+});
+
+test("a failed takeover ends the task before any input", async () => {
+	const screen = fakeScreen({ takeoverFails: true });
+	const { result, model, stage } = run({ script: [click()], screen });
 	const out = await result;
-	assert.equal(out.success, true);
-	assert.deepEqual(prompts, [["continue", "stop"]]);
-	assert.equal(screen.performed.length, 1, "only the second click ran");
-	assert.match(
-		model.requests[1].history.at(-1).results[0].text,
-		/not performed/,
-	);
+	assert.equal(out.reason, "error");
+	assert.match(out.summary, /mouse and keyboard/);
+	assert.equal(model.requests.length, 0);
+	assert.equal(screen.performed.length, 0);
+	assert.equal(stage.helpers.at(-1), null);
 });
 
-test("user input pauses; Stop ends the task", async () => {
+test("aborting a Do_Mode task releases the takeover and removes baby Clippy", async () => {
+	const ctrl = new AbortController();
 	const screen = fakeScreen();
-	const stage = fakeStage({
-		answer: () => "stop",
-		onWalk: () => screen.emit({ kind: "key" }),
+	const { result, stage } = run({
+		script: [
+			() => {
+				ctrl.abort();
+				return click();
+			},
+		],
+		screen,
+		signal: ctrl.signal,
 	});
-	const { result } = run({ script: [click()], screen, stage });
 	assert.equal((await result).reason, "cancelled");
 	assert.equal(screen.performed.length, 0);
-});
-
-test("an unanswered pause ends the task", async () => {
-	const screen = fakeScreen();
-	const stage = fakeStage({
-		answer: () => new Promise(() => {}),
-		onWalk: () => screen.emit({ kind: "click", x: 1, y: 1 }),
-	});
-	const { result } = run({ script: [click()], screen, stage });
-	assert.equal((await result).reason, "cancelled");
-	assert.equal(screen.performed.length, 0);
+	assert.equal(screen.takeovers.at(-1), false);
+	assert.equal(stage.helpers.at(-1), null);
 });
 
 const guideStep = (extra = {}) =>
@@ -541,4 +579,96 @@ test("web lookups run unconfirmed and report failures to the model", async () =>
 	assert.equal(lastToolText(model.requests[1]), "results for clippy");
 	assert.equal(lastToolText(model.requests[2]), "Failed: 404 Not Found");
 	assert.ok(stage.bubbles.every((b) => !b.buttons.length));
+});
+
+test("model requests carry only the newest screen and image", () => {
+	const img = (data) => ({ type: "image", mime: "image/jpeg", data });
+	const sent = latestScreenOnly([
+		{
+			role: "user",
+			parts: [
+				{ type: "text", text: "Goal: save\n\nCurrent screen:\nold list" },
+				img("A"),
+			],
+		},
+		{ role: "assistant", text: "", calls: [], native: [] },
+		{
+			role: "tool",
+			results: [
+				{ callId: "1", name: "screenshot", text: "Shot", image: img("B") },
+			],
+		},
+		{ role: "assistant", text: "", calls: [], native: [] },
+		{
+			role: "tool",
+			results: [
+				{
+					callId: "2",
+					name: "click",
+					text: "Done.\nCurrent screen:\nnew list",
+				},
+			],
+		},
+	]);
+	assert.equal(
+		sent[0].parts[0].text,
+		"Goal: save\n\n(Earlier screen omitted.)",
+	);
+	assert.equal(sent[0].parts.length, 1);
+	assert.equal(sent[2].results[0].image.data, "B");
+	assert.equal(sent[4].results[0].text, "Done.\nCurrent screen:\nnew list");
+});
+
+test("auto mode performs a risky click without asking", async () => {
+	const screen = fakeScreen();
+	const stage = fakeStage({ answer: () => "no" });
+	const model = fakeModel([click("e1", { risky: true }), finish()]);
+	const runner = new TaskRunner({ screen, stage, timing: FAST });
+	const out = await runner.run(
+		{ goal: "Send it", mode: "do", client: model, model: "m", auto: true },
+		new AbortController().signal,
+	);
+	assert.equal(out.success, true);
+	assert.equal(screen.performed.length, 1);
+	assert.ok(!stage.bubbles.some((b) => b.buttons.length), "no prompt");
+	assert.deepEqual(screen.takeovers, [true, false], "input stays taken over");
+});
+
+test("a task that never acts stops at its turn limit", async () => {
+	const script = Array.from({ length: TURN_LIMITS.do + 5 }, () =>
+		call("say", { text: "Thinking…" }),
+	);
+	const { result, model } = run({ script });
+	const out = await result;
+	assert.equal(out.reason, "limit");
+	assert.equal(model.requests.length, TURN_LIMITS.do);
+});
+
+test("a confirmation does not double the explanation's punctuation", async () => {
+	let asked = "";
+	const stage = fakeStage({
+		answer: (text) => {
+			asked = text;
+			return "no";
+		},
+	});
+	const { result } = run({
+		script: [click("e1", { risky: true, explanation: "Click Save." })],
+		stage,
+	});
+	await result;
+	assert.match(asked, /Click Save\. Go ahead\?$/);
+});
+
+test("an unreadable screen sends its screenshot with the step result", async () => {
+	const screen = fakeScreen({ elements: [] });
+	const { result, model } = run({
+		script: [call("press_keys", { keys: "enter" })],
+		screen,
+	});
+	await result;
+	assert.match(model.requests[0].history[0].parts[0].text, /960x540 pixels/);
+	const step = model.requests[1].history.at(-1).results[0];
+	assert.match(step.text, /Current screen:[\s\S]*960x540 pixels/);
+	assert.equal(step.image.data, "AAAA");
 });
